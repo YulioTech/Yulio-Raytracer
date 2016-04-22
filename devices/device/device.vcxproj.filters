@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="device.cpp" />
+    <ClCompile Include="handle.cpp" />
+    <ClCompile Include="loaders\loaders.cpp">
+      <Filter>Loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\obj_loader.cpp">
+      <Filter>Loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\xml_loader.cpp">
+      <Filter>Loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\xml_parser.cpp">
+      <Filter>Loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\ColladaLoader.cpp">
+      <Filter>Loaders</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="device.h" />
+    <ClInclude Include="handle.h" />
+    <ClInclude Include="loaders\loaders.h">
+      <Filter>Loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\obj_loader.h">
+      <Filter>Loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\xml_loader.h">
+      <Filter>Loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\xml_parser.h">
+      <Filter>Loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\ColladaLoader.h">
+      <Filter>Loaders</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Loaders">
+      <UniqueIdentifier>{fd591514-0f96-45e3-9987-46495f55d8da}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

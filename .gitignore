@@ -1,0 +1,10 @@
+/3rd party/DevIL-SDK-x64-1.7.8.zip
+/3rd party/DevIL-SDK-x86-1.7.8.zip
+/3rd party/FreeImage3170Win32Win64.zip
+*.tlog
+*.idb
+ReleaseAVX2
+ReleaseAVX
+Release
+Debug
+/models

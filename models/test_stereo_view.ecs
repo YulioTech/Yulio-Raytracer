@@ -1,0 +1,21 @@
+-vp 0 100 0
+-vi 0 100 100
+-vu 0 1 0
+-fov 90
+#-o output.png
+#-o output1.jpg
+#-size 1536 1536 
+#-size 256 256 
+-depth 10
+-tMaxShadowRay 120.0
+#-spp 256
+#-ambientlight 1 1 1
+#-ambientlight 0.53 0.81 0.98 #sky color
+-ambientlight 0.83 0.95 0.98 #sky color
+#-stereo
+#-toeIn
+#-renderer pathtracer
+-renderer gpt
+-framebuffer RGB_FLOAT32
+#-debug
+
