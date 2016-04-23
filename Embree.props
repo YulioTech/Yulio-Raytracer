@@ -5,6 +5,10 @@
   <PropertyGroup>
     <IncludePath>"c:\Program Files\Intel\Embree v2.8.0 x64\include";$(IncludePath)</IncludePath>
   </PropertyGroup>
-  <ItemDefinitionGroup />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>"$(SolutionDir)3rd party\Embree v2.9.0 x64\include";</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemGroup />
 </Project>
