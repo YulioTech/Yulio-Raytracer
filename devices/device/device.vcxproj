@@ -234,7 +234,9 @@
     </ClCompile>
     <PostBuildEvent>
       <Message>Copying Embree DLL</Message>
-      <Command>xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\embree.dll" "$(OutDir)"</Command>
+      <Command>xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\embree.dll" "$(OutDir)"
+xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbb.dll" "$(OutDir)"
+xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -281,7 +283,9 @@
     </ClCompile>
     <PostBuildEvent>
       <Message>Copying Embree DLL</Message>
-      <Command>xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\embree.dll" "$(OutDir)"</Command>
+      <Command>xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\embree.dll" "$(OutDir)"
+xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbb.dll" "$(OutDir)"
+xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseAVX|Win32'">
@@ -328,7 +332,9 @@
     </ClCompile>
     <PostBuildEvent>
       <Message>Copying Embree DLL</Message>
-      <Command>xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\embree.dll" "$(OutDir)"</Command>
+      <Command>xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\embree.dll" "$(OutDir)"
+xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbb.dll" "$(OutDir)"
+xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseAVX2|Win32'">
@@ -376,7 +382,9 @@
     </ClCompile>
     <PostBuildEvent>
       <Message>Copying Embree DLL</Message>
-      <Command>xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\embree.dll" "$(OutDir)"</Command>
+      <Command>xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\embree.dll" "$(OutDir)"
+xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbb.dll" "$(OutDir)"
+xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
