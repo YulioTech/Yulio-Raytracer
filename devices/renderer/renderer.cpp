@@ -76,7 +76,7 @@ namespace embree
 	std::string g_workingDirectory = "";
 	std::string g_sceneFileName = "";
 	size_t g_num_frames = 1; // number of frames to render in output mode
-	size_t g_numThreads = 0; // 0 means auto-detect
+	size_t g_numThreads = 1;// 0; // 0 means auto-detect
 	size_t g_verbose_output = 0;
 
 	/* regression testing mode */

@@ -119,7 +119,7 @@ namespace embree
 
 	private:
 		Ref<AccuBuffer> _accu;                    //!< special accumulation buffer
-		std::vector<Ref<FrameBuffer> > _buffer;   //!< the swapchain frame buffers
+		std::vector<Ref<FrameBuffer>> _buffer;   //!< the swapchain frame buffers
 	};
 }
 

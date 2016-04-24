@@ -15,10 +15,8 @@ namespace embree
 	GPTRenderer::GPTRenderer(const Parms& parms)
 		: iteration(0)
 	{
-		/*! create integrator to use */
-		const std::string _integrator = parms.getString("integrator", "pathtracer");
-		if (_integrator == "gpt") integrator = new GPTIntegrator(parms);
-		else throw std::runtime_error("unsupported integrator type: " + _integrator);
+		/*! create GPT integrator - the only currently supported by the GPT renderer */
+		integrator = new GPTIntegrator(parms);
 
 		/*! create sampler to use */
 		const std::string _samplers = parms.getString("sampler", "multijittered");
@@ -130,22 +128,46 @@ namespace embree
 
 					const int set = randomNumberGenerator.getInt(renderer->samplers->sampleSets);
 
-					Color L = zero;
-					size_t spp = renderer->samplers->samplesPerPixel;
+					Color centerVeryDirect = zero, centerThroughput = zero;
+					Color gradients[4], shiftedThroughputs[4];
+
+					const size_t spp = renderer->samplers->samplesPerPixel;
 					for (size_t s = 0; s < spp; s++)
 					{
-						PrecomputedSample& sample = renderer->samplers->samples[set][s];
-						const float fx = (float(x) + sample.pixel.x)*rcpWidth;
-						const float fy = (float(y) + sample.pixel.y)*rcpHeight;
+						PrecomputedSample &sample = renderer->samplers->samples[set][s];
+						const float fx = (float(x) + sample.pixel.x) * rcpWidth;
+						const float fy = (float(y) + sample.pixel.y) * rcpHeight;
 
-						Ray primary; camera->ray(Vec2f(fx, fy), sample.getLens(), primary);
-						primary.time = sample.getTime();
+						// Base ray
+						Ray baseRay; camera->ray(Vec2f(fx, fy), sample.getLens(), baseRay);
+						baseRay.time = sample.getTime();
+
+						// Pixel shifts for offset rays
+						static const Vec2f pixelShift[4]{
+							Vec2f(1.f, 0.f),
+							Vec2f(0.f, 1.f),
+							Vec2f(-1.f, 0.f),
+							Vec2f(0.f, -1.f)
+						};
+
+						Ray offsetRays[4];
+						for (int i = 0; i < 4; ++i) {
+							const float fx = (float(x) + pixelShift[i].x + sample.pixel.x) * rcpWidth;
+							const float fy = (float(y) + pixelShift[i].y + sample.pixel.y) * rcpHeight;
+							camera->ray(Vec2f(fx, fy), sample.getLens(), offsetRays[i]);
+							offsetRays[i].time = sample.getTime();
+						}
 
 						state.sample = &sample;
 						state.pixel = Vec2f(fx, fy);
-						L += renderer->integrator->Li(primary, scene, state);
+
+						renderer->integrator->EvaluatePoint(baseRay, offsetRays,
+							centerVeryDirect, centerThroughput,
+							gradients, shiftedThroughputs,
+							scene, state);
 					}
-					const Color L0 = swapchain->update(x, _y, L, spp, accumulate);
+
+					const Color L0 = swapchain->update(x, _y, centerVeryDirect, spp, accumulate);
 					const Color L1 = toneMapper->eval(L0, x, y, swapchain);
 					framebuffer->set(x, _y, L1);
 				}

@@ -9,6 +9,9 @@
 
 namespace embree
 {
+	// Forward declaration
+	class GPTIntegrator;
+
 	/*! Renderer that uses a given integrator, sampler, and pixel
 	*  filter. */
 	class GPTRenderer : public Renderer
@@ -44,7 +47,7 @@ namespace embree
 			Ref<BackendScene> scene;       //!< Scene to render
 			Ref<ToneMapper> toneMapper;    //!< Tonemapper to use.
 			Ref<FrameBuffer> framebuffer;  //!< Framebuffer to render into
-			Ref<SwapChain> swapchain;		 //!< Swapchain to render into
+			Ref<SwapChain> swapchain;	   //!< Swapchain to render into
 			int accumulate;                //!< Accumulation mode
 			int iteration;
 
@@ -69,7 +72,7 @@ namespace embree
 		float gamma;                   //!< Gamma to use for framebuffer writeback.
 
 	private:
-		Ref<Integrator> integrator;    //!< Integrator to use.
+		Ref<GPTIntegrator> integrator; //!< GPRRenderer supports only GPT integrator, since the latter needs special handling and regular Integrator virtual function prototypes are not sufficient.
 		Ref<SamplerFactory> samplers;  //!< Sampler to use.
 		Ref<Filter> filter;            //!< Pixel filter to use.
 

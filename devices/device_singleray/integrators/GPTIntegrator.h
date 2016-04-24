@@ -13,6 +13,18 @@ namespace embree
 
 	class GPTIntegrator : public Integrator
 	{
+		/// Classification of vertices into diffuse and glossy.
+		enum VertexType {
+			VERTEX_TYPE_GLOSSY,     ///< "Specular" vertex that requires the half-vector duplication shift.
+			VERTEX_TYPE_DIFFUSE     ///< "Non-specular" vertex that is rough enough for the reconnection shift.
+		};
+
+		enum PathConnection {
+			PATH_NOT_CONNECTED,      ///< Not yet connected - shifting in progress.
+			PATH_RECENTLY_CONNECTED, ///< Connected, but different incoming direction so needs a BSDF evaluation.
+			PATH_CONNECTED           ///< Connected, allows using BSDF values from the base path.
+		};
+
 		/*! Tracks the state of the path. */
 		class __align(16) LightPath
 		{
@@ -28,14 +40,34 @@ namespace embree
 				return LightPath(nextRay, nextMedium, depth + 1, throughput*weight, ignoreVL, true/*unbent && (nextRay.dir == lastRay.dir)*/);
 			}
 
+
+			/// Adds radiance to the path.
+			__forceinline void addRadiance(const Color &contribution, float weight) {
+				Color color = contribution * weight;
+				radiance += color;
+			}
+
+			/// Adds gradient to the path.
+			__forceinline void addGradient(const Color &contribution, float weight) {
+				Color color = contribution * weight;
+				gradient += color;
+			}
+
 		public:
 			Ray lastRay;                 /*! Last ray in the path. */
+			DifferentialGeometry lastDG; /*! Last differential geometry hit by the ray of the path. */
 			Medium lastMedium;           /*! Medium the last ray travels inside. */
-			uint32 depth;                /*! Recursion depth of path. */
-			Color throughput;            /*! Determines the fraction of radiance that reaches the pixel along the path. */
-			bool ignoreVisibleLights;    /*! If the previous shade point used shadow rays we have to ignore the emission
+			uint32 depth = 0;                /*! Recursion depth of path. */
+			Color throughput = zero;            /*! Determines the fraction of radiance that reaches the pixel along the path. */
+			Color radiance = zero;				/*! Radiance accumulated so far. */
+			Color gradient = zero;				/*! Gradient accumulated so far. */
+			bool ignoreVisibleLights = false;    /*! If the previous shade point used shadow rays we have to ignore the emission
 										 of geometrical lights to not double count them. */
-			bool unbent;                 /*! True if the ray path is a straight line. */
+			bool unbent = true;                 /*! True if the ray path is a straight line. */
+			float pdf = 1.f;					/*! Current PDF of the path. */
+			float eta = 1.f;					/*! Current refractive index of the ray */
+			bool alive = true;					/*! Whether the path matching the ray is still good. it's an invalid offset path with zero PDF and throughput. */
+			PathConnection connectionState = PATH_NOT_CONNECTED; 	/*! Whether the ray has been connected to the base path, or is in progress. */
 		};
 
 	public:
@@ -53,7 +85,15 @@ namespace embree
 		/*! Computes the radiance arriving at the origin of the ray from the ray direction. */
 		Color Li(Ray& ray, const Ref<BackendScene>& scene, IntegratorState& state);
 
-		/* Configuration. */
+		void EvaluatePoint(Ray &centralRay, Ray *offsetRays,
+			Color &outVeryDirect, Color &outThroughput,
+			Color *outGradients, Color *outShiftedThroughputs,
+			const Ref<BackendScene> &scene, IntegratorState &state);
+
+	private:
+		void evaluate(LightPath &basePath, LightPath *shiftedPaths, int shiftedCount, Color &outVeryDirect, const Ref<BackendScene>& scene, IntegratorState& state);
+
+			/* Configuration. */
 	private:
 		size_t maxDepth;               //!< Maximal recursion depth (1=primary ray only)
 		float minContribution;         //!< Minimal contribution of a path to the pixel.

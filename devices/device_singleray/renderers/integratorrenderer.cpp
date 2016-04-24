@@ -16,9 +16,8 @@
 
 #include "renderers/integratorrenderer.h"
 
-/* include all integrators */
+/* include all supported integrators */
 #include "integrators/pathtraceintegrator.h"
-#include "integrators/GPTIntegrator.h"
 
 /* include all samplers */
 #include "samplers/sampler.h"
@@ -35,7 +34,6 @@ namespace embree
 		/*! create integrator to use */
 		const std::string _integrator = parms.getString("integrator", "pathtracer");
 		if (_integrator == "pathtracer") integrator = new PathTraceIntegrator(parms);
-		else if (_integrator == "gpt") integrator = new GPTIntegrator(parms);
 		else throw std::runtime_error("unknown integrator type: " + _integrator);
 
 		/*! create sampler to use */

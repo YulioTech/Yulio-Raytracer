@@ -123,7 +123,7 @@ namespace embree
 			exit(0);
 			break;
 
-		// For testing
+		// For testing of camera facing geometry
 		case 'z':
 		{
 			for (size_t i = 0; i < g_prims.size(); i++) {
