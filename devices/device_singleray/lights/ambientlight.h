@@ -21,51 +21,51 @@
 
 namespace embree
 {
-  /*! Implements an ambient light. An ambient light behaves like a
-   *  uniform environment map. */
-  class AmbientLight : public EnvironmentLight
-  {
-  protected:
-    /*! Construction from radiance. */
-    AmbientLight (const Color& L,
-                  light_mask_t illumMask=-1,
-                  light_mask_t shadowMask=-1)
-      : EnvironmentLight(illumMask,shadowMask), L(L) { }
+	/*! Implements an ambient light. An ambient light behaves like a
+	 *  uniform environment map. */
+	class AmbientLight : public EnvironmentLight
+	{
+	protected:
+		/*! Construction from radiance. */
+		AmbientLight(const Color& L,
+			light_mask_t illumMask = -1,
+			light_mask_t shadowMask = -1)
+			: EnvironmentLight(illumMask, shadowMask), L(L) { }
 
-  public:
+	public:
 
-    /*! Construction from parameter container. */
-    AmbientLight (const Parms& parms) {
-      L = parms.getColor("L");
-    }
+		/*! Construction from parameter container. */
+		AmbientLight(const Parms& parms) {
+			L = parms.getColor("L");
+		}
 
-    Ref<Light> transform(const AffineSpace3f& xfm,
-                         light_mask_t illumMask,
-                         light_mask_t shadowMask) const {
-      return new AmbientLight(L,illumMask,shadowMask);
-    }
+		Ref<Light> transform(const AffineSpace3f& xfm,
+			light_mask_t illumMask,
+			light_mask_t shadowMask) const {
+			return new AmbientLight(L, illumMask, shadowMask);
+		}
 
-    Color Le(const Vector3f& wo) const {
-      return L;
-    }
+		Color Le(const Vector3f& wo) const {
+			return L;
+		}
 
-    Color eval(const DifferentialGeometry& dg, const Vector3f& wi) const {
-      return L;
-    }
+		Color eval(const DifferentialGeometry& dg, const Vector3f& wi) const {
+			return L;
+		}
 
-    Color sample(const DifferentialGeometry& dg, Sample3f& wi, float& tMax, const Vec2f& s) const {
-      wi = cosineSampleHemisphere(s.x, s.y, dg.Ns);
-      tMax = inf;
-      return L;
-    }
+		Color sample(const DifferentialGeometry& dg, Sample3f& wi, float& tMax, const Vec2f& s) const {
+			wi = cosineSampleHemisphere(s.x, s.y, dg.Ns);
+			tMax = inf;
+			return L;
+		}
 
-    float pdf(const DifferentialGeometry& dg, const Vector3f& wi) const {
-      return cosineSampleHemispherePDF(wi,dg.Ns);
-    }
+		float pdf(const DifferentialGeometry& dg, const Vector3f& wi) const {
+			return cosineSampleHemispherePDF(wi, dg.Ns);
+		}
 
-  protected:
-    Color L;          //!< Radiance (W/(m^2*sr))
-  };
+	protected:
+		Color L;          //!< Radiance (W/(m^2*sr))
+	};
 }
 
 #endif

@@ -257,7 +257,7 @@ namespace embree {
 
 			// Transmission color
 			aiColor4D transmissionColor(.0f, .0f, .0f, 1.f);
-			if (1) {
+			if (0) {
 				if (AI_SUCCESS == aiGetMaterialColor(aiMtl, AI_MATKEY_COLOR_TRANSPARENT, &transmissionColor)
 					&& transmissionColor.a < 1.f) {
 					materialType = "ThinDielectric";

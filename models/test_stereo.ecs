@@ -1,6 +1,7 @@
--i test_stereo.xml
+#-i test_stereo.xml
 #-i test_transmissive.xml
 #-i 22_Frederick_Color_Problem.dae
+-i Sponza.dae
 #-i Kia.dae
 #-i treeAlone_tempo_to_execute.dae
 #-i Whitecap_New.dae
