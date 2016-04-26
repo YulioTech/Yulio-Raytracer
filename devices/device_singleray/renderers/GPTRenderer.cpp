@@ -1,7 +1,11 @@
 #include "renderers/GPTRenderer.h"
 
-/* include all integrators */
+/* include GPT integrator */
 #include "integrators/GPTIntegrator.h"
+#include "renderers/GPTPoissonSolver/Solver.hpp"
+
+/// If defined, applies reconstruction after rendering.
+#define RECONSTRUCT
 
 /* include all samplers */
 #include "samplers/sampler.h"
@@ -17,6 +21,17 @@ namespace embree
 	{
 		/*! create GPT integrator - the only currently supported by the GPT renderer */
 		integrator = new GPTIntegrator(parms);
+
+		shiftThreshold = parms.getFloat("shiftThreshold", .001f);
+		reconstructL1 = parms.getBool("reconstructL1", true);
+		reconstructL2 = parms.getBool("reconstructL2", false);
+		reconstructAlpha = parms.getFloat("reconstructAlpha", .2f);
+
+		if (reconstructL1 && reconstructL2)
+			throw std::runtime_error("Disable 'reconstructL1' or 'reconstructL2': Cannot display two reconstructions at a time!");
+
+		if (reconstructAlpha <= 0.f)
+			throw std::runtime_error("'reconstructAlpha' must be set to a value greater than zero!");
 
 		/*! create sampler to use */
 		const std::string _samplers = parms.getString("sampler", "multijittered");
@@ -42,6 +57,47 @@ namespace embree
 		if (accumulate == 0) iteration = 0;
 		new RenderJob(this, camera, scene, toneMapper, swapchain, accumulate, iteration);
 		iteration++;
+
+#if defined(RECONSTRUCT)
+		if (reconstructL1 || reconstructL2) {
+
+			/* Reconstruct. */
+			poisson::Solver::Params params;
+
+			if (reconstructL1) {
+				params.setConfigPreset("L1D");
+			}
+			else if (reconstructL2) {
+				params.setConfigPreset("L2D");
+			}
+
+			params.alpha = reconstructAlpha;
+			///params.setLogFunction(poisson::Solver::Params::LogFunction([](const std::string& message) { SLog(EInfo, "%s", message.c_str()); }));
+
+			poisson::Solver solver(params);
+			///solver.importImagesMTS(dxVector.data(), dyVector.data(), throughputVector.data(), directVector.data(), film->getCropSize().x, film->getCropSize().y);
+
+			solver.setupBackend();
+			solver.solveIndirect();
+
+			//solver.exportImagesMTS(reconstructionVector.data());
+
+			///* Give the solution back to Mitsuba. */
+			//int w = reconstructionBitmap->getSize().x;
+			//int h = reconstructionBitmap->getSize().y;
+
+			//for (int y = 0, p = 0; y < h; ++y) {
+			//	for (int x = 0; x < w; ++x, p += 3) {
+			//		Float color[3] = { (Float)reconstructionVector[p], (Float)reconstructionVector[p + 1], (Float)reconstructionVector[p + 2] };
+			//		reconstructionBitmap->setPixel(Point2i(x, y), Spectrum(color));
+			//	}
+			//}
+
+			//film->setBitmapMulti(reconstructionBitmap, 1, BUFFER_FINAL);
+
+		}
+
+#endif //RECONSTRUCT
 	}
 
 	GPTRenderer::RenderJob::RenderJob(Ref<GPTRenderer> renderer, const Ref<Camera>& camera, const Ref<BackendScene>& scene,

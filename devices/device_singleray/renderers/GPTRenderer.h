@@ -77,6 +77,13 @@ namespace embree
 		Ref<Filter> filter;            //!< Pixel filter to use.
 
 	private:
+		//bool strictNormals;
+		float shiftThreshold;
+		bool reconstructL1;
+		bool reconstructL2;
+		float reconstructAlpha;
+
+	private:
 		int iteration;
 		bool showProgress;             //!< Set to true if user wants rendering progress shown
 	};

@@ -43,6 +43,18 @@
     <ClCompile Include="renderers\GPTRenderer.cpp">
       <Filter>renderers</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\GPTPoissonSolver\Backend.cpp">
+      <Filter>renderers\GPTPissonSolver</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\GPTPoissonSolver\BackendOpenMP.cpp">
+      <Filter>renderers\GPTPissonSolver</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\GPTPoissonSolver\Defs.cpp">
+      <Filter>renderers\GPTPissonSolver</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\GPTPoissonSolver\Solver.cpp">
+      <Filter>renderers\GPTPissonSolver</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="default.h" />
@@ -307,6 +319,18 @@
     <ClInclude Include="renderers\GPTRenderer.h">
       <Filter>renderers</Filter>
     </ClInclude>
+    <ClInclude Include="renderers\GPTPoissonSolver\Backend.hpp">
+      <Filter>renderers\GPTPissonSolver</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\GPTPoissonSolver\BackendOpenMP.hpp">
+      <Filter>renderers\GPTPissonSolver</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\GPTPoissonSolver\Defs.hpp">
+      <Filter>renderers\GPTPissonSolver</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\GPTPoissonSolver\Solver.hpp">
+      <Filter>renderers\GPTPissonSolver</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="materials">
@@ -347,6 +371,9 @@
     </Filter>
     <Filter Include="tonemappers">
       <UniqueIdentifier>{fffb8ace-3a0e-4032-ac84-58cd6f3d217d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="renderers\GPTPissonSolver">
+      <UniqueIdentifier>{5751dc3f-cbe2-4b25-aa2e-38d94dc5d76f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

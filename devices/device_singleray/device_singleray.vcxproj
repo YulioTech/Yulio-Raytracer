@@ -440,6 +440,10 @@
     <ClInclude Include="materials\Uber.h" />
     <ClInclude Include="materials\velvet.h" />
     <ClInclude Include="renderers\debugrenderer.h" />
+    <ClInclude Include="renderers\GPTPoissonSolver\Backend.hpp" />
+    <ClInclude Include="renderers\GPTPoissonSolver\BackendOpenMP.hpp" />
+    <ClInclude Include="renderers\GPTPoissonSolver\Defs.hpp" />
+    <ClInclude Include="renderers\GPTPoissonSolver\Solver.hpp" />
     <ClInclude Include="renderers\GPTRenderer.h" />
     <ClInclude Include="renderers\integratorrenderer.h" />
     <ClInclude Include="renderers\progress.h" />
@@ -473,6 +477,10 @@
     <ClCompile Include="integrators\pathtraceintegrator.cpp" />
     <ClCompile Include="lights\hdrilight.cpp" />
     <ClCompile Include="renderers\debugrenderer.cpp" />
+    <ClCompile Include="renderers\GPTPoissonSolver\Backend.cpp" />
+    <ClCompile Include="renderers\GPTPoissonSolver\BackendOpenMP.cpp" />
+    <ClCompile Include="renderers\GPTPoissonSolver\Defs.cpp" />
+    <ClCompile Include="renderers\GPTPoissonSolver\Solver.cpp" />
     <ClCompile Include="renderers\GPTRenderer.cpp" />
     <ClCompile Include="renderers\integratorrenderer.cpp" />
     <ClCompile Include="renderers\progress.cpp" />

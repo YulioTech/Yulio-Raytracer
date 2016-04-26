@@ -1,11 +1,12 @@
 #include "GPTIntegrator.h"
 
-
-
 #include "integrators/GPTIntegrator.h"
 
 namespace embree
 {
+	/// A threshold to use in positive denominators to avoid division by zero.
+	const float D_EPSILON = (float)(1e-14);
+
 	GPTIntegrator::GPTIntegrator(const Parms& parms)
 		: lightSampleID(-1), firstScatterSampleID(-1), firstScatterTypeSampleID(-1)
 	{
