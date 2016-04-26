@@ -18,51 +18,52 @@
 #define __EMBREE_POINT_LIGHT_H__
 
 #include "../lights/light.h"
+#include "../samplers/sampler.h"
 
 namespace embree
 {
-  /*! Implements a point light source. */
-  class PointLight : public Light
-  {
-    /*! Construction from position and intensity. */
-    PointLight (const Vector3f& P, const Color& I,
-                light_mask_t illumMask=-1,
-                light_mask_t shadowMask=-1) 
-      : Light(illumMask,shadowMask), 
-        P(P), I(I) 
-    {}
+	/*! Implements a point light source. */
+	class PointLight : public Light
+	{
+		/*! Construction from position and intensity. */
+		PointLight(const Vector3f& P, const Color& I,
+			light_mask_t illumMask = -1,
+			light_mask_t shadowMask = -1)
+			: Light(illumMask, shadowMask),
+			P(P), I(I)
+		{}
 
-  public:
+	public:
 
-    /*! Construction from parameter container. */
-    PointLight (const Parms& parms) {
-      P = parms.getVector3f("P",zero);
-      I = parms.getColor("I",zero);
-    }
+		/*! Construction from parameter container. */
+		PointLight(const Parms& parms) {
+			P = parms.getVector3f("P", zero);
+			I = parms.getColor("I", zero);
+		}
 
-    Ref<Light> transform(const AffineSpace3f& xfm,
-                         light_mask_t illumMask,
-                         light_mask_t shadowMask) const {
-      return new PointLight(xfmPoint(xfm,P),I,illumMask,shadowMask);
-    }
+		Ref<Light> transform(const AffineSpace3f& xfm,
+			light_mask_t illumMask,
+			light_mask_t shadowMask) const {
+			return new PointLight(xfmPoint(xfm, P), I, illumMask, shadowMask);
+		}
 
-    Color sample(const DifferentialGeometry& dg, Sample3f& wi, float& tMax, const Vec2f& s) const
-    {
-      Vector3f d = P - dg.P;
-      float distance = length(d);
-      wi = Sample3f(d / distance, distance*distance);
-      tMax = distance;
-      return I;
-    }
+		Color sample(const DifferentialGeometry& dg, LightSample &ls, const Vec2f& s) const
+		{
+			Vector3f d = P - dg.P;
+			float distance = length(d);
+			ls.wi = Sample3f(d / distance, distance*distance);
+			ls.tMax = distance;
+			return I;
+		}
 
-    float pdf(const DifferentialGeometry& dg, const Vector3f& wi) const {
-      return zero;
-    }
-    
-  private:
-    Vector3f P;       //!< Position of the point light
-    Color I;       //!< Radiant intensity (W/sr)
-  };
+		float pdf(const DifferentialGeometry& dg, const Vector3f& wi) const {
+			return zero;
+		}
+
+	private:
+		Vector3f P;       //!< Position of the point light
+		Color I;       //!< Radiant intensity (W/sr)
+	};
 }
 
 #endif

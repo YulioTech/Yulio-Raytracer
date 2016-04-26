@@ -23,6 +23,8 @@
 
 namespace embree
 {
+	struct LightSample;
+
   /*! Implements a texture mapped environment light. */
   class HDRILight : public EnvironmentLight
   {
@@ -48,8 +50,7 @@ namespace embree
 
     Color Le    (const Vector3f& wo) const;
     Color eval  (const DifferentialGeometry& dg, const Vector3f& wi) const;
-    Color sample(const DifferentialGeometry& dg, Sample3f& wi, 
-                 float& tMax, const Vec2f& s) const;
+    Color sample(const DifferentialGeometry& dg, LightSample &ls, const Vec2f& s) const;
     float pdf   (const DifferentialGeometry& dg, const Vector3f& wi) const;
     bool  precompute() const { return true; }
 

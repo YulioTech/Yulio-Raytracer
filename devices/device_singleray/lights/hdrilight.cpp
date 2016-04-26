@@ -16,6 +16,7 @@
 
 #include "hdrilight.h"
 #include "sys/stl/array2d.h"
+#include "../samplers/sampler.h"
 
 namespace embree
 {
@@ -88,14 +89,14 @@ namespace embree
 		return Le(-wi);
 	}
 
-	Color HDRILight::sample(const DifferentialGeometry& dg, Sample3f& wi, float& tMax, const Vec2f& sample) const
+	Color HDRILight::sample(const DifferentialGeometry& dg, LightSample &ls, const Vec2f& sample) const
 	{
 		Sample2f pixelF = distribution->sample(sample);
 		float theta = float(pi) * pixelF.value.y*rcp(float(height));
 		float phi = float(two_pi) * (1.0f - pixelF.value.x*rcp(float(width)));
 		Vector3f _wi = Vector3f(-sinf(theta)*cosf(phi), cosf(theta), -sinf(theta)*sinf(phi));
-		wi = Sample3f(xfmVector(local2world, _wi), pixelF.pdf*rcp(float(two_pi) * float(pi) * sinf(theta)));
-		tMax = inf;
+		ls.wi = Sample3f(xfmVector(local2world, _wi), pixelF.pdf*rcp(float(two_pi) * float(pi) * sinf(theta)));
+		ls.tMax = inf;
 		return L*pixels->get(clamp(ssize_t(pixelF.value.x), ssize_t(0), ssize_t(width - 1)),
 			clamp(ssize_t(pixelF.value.y), ssize_t(0), ssize_t(height - 1)));
 	}

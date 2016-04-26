@@ -216,8 +216,7 @@ namespace embree
 		}
 
 		/* interpolate shading normal */
-		if (normal.size())
-		{
+		if (normal.size()) {
 			const Vector3f n0 = normal[tri.v0], n1 = normal[tri.v1], n2 = normal[tri.v2];
 			Vector3f Ns = w*n0 + u*n1 + v*n2;
 			float len2 = dot(Ns, Ns);
@@ -225,8 +224,9 @@ namespace embree
 			if (dot(Ns, dg.Ng) < 0) Ns = -Ns;
 			dg.Ns = Ns;
 		}
-		else
+		else {
 			dg.Ns = dg.Ng;
+		}
 
 		/* interpolate x tangent direction */
 		if (tangent_x.size()) {
@@ -247,6 +247,13 @@ namespace embree
 			const Vector3f dPdt = normalize(dPdv*dsdu - dPdu*dsdv);
 			dg.Ty = normalize(dPdt - dot(dPdt, dg.Ns)*dg.Ns);
 		}
+
+#if 0
+		dg.shadingFrame = Frame(dg.Tx, dg.Ty, dg.Ns);
+#else
+		Frame::computeShadingFrame(dg.Ns, dPdu, dg.shadingFrame);
+#endif
+		dg.wi = dg.shadingFrame.toLocal(-ray.dir);
 
 		dg.error = max(abs(ray.tfar), reduce_max(abs(dg.P)));
 	}

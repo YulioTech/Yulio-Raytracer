@@ -19,7 +19,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lexers", "common\lexers\lex
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sys", "common\sys\sys.vcxproj", "{B118AB3D-AB5B-4D86-90C2-8E91E8457710}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "renderer", "devices\renderer\renderer.vcxproj", "{1CA4782A-3DB4-4EC6-889D-104C61BF26DE}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "rt", "devices\renderer\renderer.vcxproj", "{1CA4782A-3DB4-4EC6-889D-104C61BF26DE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "renderer_server", "devices\device_network\network_server.vcxproj", "{F8965E6E-70F2-49D0-AC35-8A399C123541}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -47,6 +47,34 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3rd party", "3rd party", "{802E238F-BB2F-4297-8560-A03B610E584A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "assimp", "3rd party\assimp-3.2\code\assimp.vcxproj", "{9F862E9E-9DEE-35FF-B591-70190BBF60DE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "common", "common", "{837C5355-81B5-4272-A0B8-2868AB28A1D3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "math", "math", "{8598B3D8-C1C8-491A-9900-2298E07D275E}"
+	ProjectSection(SolutionItems) = preProject
+		common\math\affinespace.h = common\math\affinespace.h
+		common\math\bbox.h = common\math\bbox.h
+		common\math\bsphere.h = common\math\bsphere.h
+		common\math\col3.h = common\math\col3.h
+		common\math\col4.h = common\math\col4.h
+		common\math\color.h = common\math\color.h
+		common\math\color_scalar.h = common\math\color_scalar.h
+		common\math\color_sse.h = common\math\color_sse.h
+		common\math\linearspace3.h = common\math\linearspace3.h
+		common\math\math.h = common\math\math.h
+		common\math\permutation.h = common\math\permutation.h
+		common\math\quaternion.h = common\math\quaternion.h
+		common\math\random.h = common\math\random.h
+		common\math\vec2.h = common\math\vec2.h
+		common\math\vec3.h = common\math\vec3.h
+		common\math\vec4.h = common\math\vec4.h
+		common\math\vector3b_mic.h = common\math\vector3b_mic.h
+		common\math\vector3b_sse.h = common\math\vector3b_sse.h
+		common\math\vector3f_mic.h = common\math\vector3f_mic.h
+		common\math\vector3f_sse.h = common\math\vector3f_sse.h
+		common\math\vector3i_mic.h = common\math\vector3i_mic.h
+		common\math\vector3i_sse.h = common\math\vector3i_sse.h
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -238,6 +266,8 @@ Global
 		{EE858C9A-C161-4036-8DF7-EB169BCB81BC} = {D8ACAEEA-07BB-48F1-A342-1D72752BB338}
 		{802E238F-BB2F-4297-8560-A03B610E584A} = {E728A04F-9662-4246-9FA3-640C28A7BFC7}
 		{9F862E9E-9DEE-35FF-B591-70190BBF60DE} = {802E238F-BB2F-4297-8560-A03B610E584A}
+		{837C5355-81B5-4272-A0B8-2868AB28A1D3} = {D8ACAEEA-07BB-48F1-A342-1D72752BB338}
+		{8598B3D8-C1C8-491A-9900-2298E07D275E} = {837C5355-81B5-4272-A0B8-2868AB28A1D3}
 	EndGlobalSection
 	GlobalSection(IntelOptPkgProperties) = preSolution
 		LoadPackage = true

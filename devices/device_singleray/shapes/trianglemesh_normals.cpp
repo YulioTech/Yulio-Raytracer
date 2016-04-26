@@ -144,6 +144,8 @@ namespace embree
 		dg.Ns = Ns;
 		dg.Tx = dPdu;
 		dg.Ty = dPdv;
+		Frame::computeShadingFrame(dg.Ns, dPdu, dg.shadingFrame);
+		dg.wi = dg.shadingFrame.toLocal(-ray.dir);
 		dg.error = max(abs(ray.tfar), reduce_max(abs(dg.P)));
 	}
 }

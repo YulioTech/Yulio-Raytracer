@@ -18,6 +18,7 @@
 #define __EMBREE_AMBIENT_LIGHT_H__
 
 #include "../lights/light.h"
+#include "../samplers/sampler.h"
 
 namespace embree
 {
@@ -53,9 +54,9 @@ namespace embree
 			return L;
 		}
 
-		Color sample(const DifferentialGeometry& dg, Sample3f& wi, float& tMax, const Vec2f& s) const {
-			wi = cosineSampleHemisphere(s.x, s.y, dg.Ns);
-			tMax = inf;
+		Color sample(const DifferentialGeometry& dg, LightSample &ls, const Vec2f& s) const {
+			ls.wi = cosineSampleHemisphere(s.x, s.y, dg.Ns);
+			ls.tMax = inf;
 			return L;
 		}
 
@@ -65,6 +66,7 @@ namespace embree
 
 	protected:
 		Color L;          //!< Radiance (W/(m^2*sr))
+		BSphere<Vector3f> bsphere;
 	};
 }
 

@@ -36,8 +36,10 @@ namespace embree
 				: lastRay(ray), lastMedium(medium), depth(depth), throughput(throughput), ignoreVisibleLights(ignoreVisibleLights), unbent(unbent) {}
 
 			/*! Extends a light path. */
-			__forceinline LightPath extended(const Ray& nextRay, const Medium& nextMedium, const Color& weight, const bool ignoreVL) const {
-				return LightPath(nextRay, nextMedium, depth + 1, throughput*weight, ignoreVL, true/*unbent && (nextRay.dir == lastRay.dir)*/);
+			__forceinline LightPath extended(const Ray& nextRay, const Medium& nextMedium, const Color& weight, float invBrdfPdf, const bool ignoreVL) const {
+				LightPath lp(nextRay, nextMedium, depth + 1, throughput*weight, ignoreVL, unbent && (nextRay.dir == lastRay.dir));
+				lp.misWeight = lp.throughput * invBrdfPdf;
+				return lp;
 			}
 
 
@@ -58,6 +60,7 @@ namespace embree
 			DifferentialGeometry lastDG; /*! Last differential geometry hit by the ray of the path. */
 			Medium lastMedium;           /*! Medium the last ray travels inside. */
 			uint32 depth = 0;                /*! Recursion depth of path. */
+			Color misWeight = one;	/*! Inverse BRDF PDF for the last sample multiplied by throughput */
 			Color throughput = zero;            /*! Determines the fraction of radiance that reaches the pixel along the path. */
 			Color radiance = zero;				/*! Radiance accumulated so far. */
 			Color gradient = zero;				/*! Gradient accumulated so far. */

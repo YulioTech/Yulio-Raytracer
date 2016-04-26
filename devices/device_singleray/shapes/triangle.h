@@ -78,6 +78,8 @@ namespace embree
 			dg.Ng = this->Ng;
 			dg.Ns = this->Ng;
 			dg.st = Vec2f(ray.u, ray.v);
+			dg.shadingFrame = Frame(dg.Ns);
+			dg.wi = dg.shadingFrame.toLocal(-ray.dir);
 			dg.error = max(abs(ray.tfar), reduce_max(abs(dg.P)));
 		}
 

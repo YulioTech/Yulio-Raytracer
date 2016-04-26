@@ -20,6 +20,7 @@
 #include "math/linearspace3.h"
 #include "math/quaternion.h"
 #include "math/bbox.h"
+#include "math/bsphere.h"
 
 namespace embree
 {

@@ -65,9 +65,9 @@ namespace embree
       return zero;
     }
 
-    Color sample(const DifferentialGeometry& dg, Sample3f& wi, float& tMax, const Vec2f& s) const {
-      wi = uniformSampleCone(s.x,s.y,halfAngle,_wo);
-      tMax = inf;
+    Color sample(const DifferentialGeometry& dg, LightSample &ls, const Vec2f& s) const {
+      ls.wi = uniformSampleCone(s.x,s.y,halfAngle,_wo);
+      ls.tMax = inf;
       return L;
     }
 

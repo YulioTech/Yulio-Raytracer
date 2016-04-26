@@ -169,6 +169,47 @@ namespace embree
 	__forceinline bool  select(bool s, bool  t, bool f) { return s ? t : f; }
 	__forceinline int   select(bool s, int   t, int f) { return s ? t : f; }
 	__forceinline float select(bool s, float t, float f) { return s ? t : f; }
+
+	template<typename T>
+	__forceinline bool solveQuadratic(T a, T b, T c, T &x0, T &x1) {
+		/* Linear case */
+		if (a == 0) {
+			if (b != 0) {
+				x0 = x1 = -c / b;
+				return true;
+			}
+			return false;
+		}
+
+		T discrim = b*b - 4.0f*a*c;
+
+		/* Leave if there is no solution */
+		if (discrim < 0)
+			return false;
+
+		T temp, sqrtDiscrim = std::sqrt(discrim);
+
+		/* Numerically stable version of (-b (+/-) sqrtDiscrim) / (2 * a)
+		*
+		* Based on the observation that one solution is always
+		* accurate while the other is not. Finds the solution of
+		* greater magnitude which does not suffer from loss of
+		* precision and then uses the identity x1 * x2 = c / a
+		*/
+		if (b < 0)
+			temp = -0.5f * (b - sqrtDiscrim);
+		else
+			temp = -0.5f * (b + sqrtDiscrim);
+
+		x0 = temp / a;
+		x1 = c / temp;
+
+		/* Return the results so that x0 < x1 */
+		if (x0 > x1)
+			std::swap(x0, x1);
+
+		return true;
+	}
 }
 
 #endif

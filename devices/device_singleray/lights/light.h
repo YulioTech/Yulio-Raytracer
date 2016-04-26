@@ -23,6 +23,8 @@
 
 namespace embree
 {
+	struct LightSample;
+
   /*! Interface to different lights. A light can be evaluated,
    *  sampled, and the sampling PDF be evaluated. */
   class Light : public RefCount {
@@ -57,8 +59,9 @@ namespace embree
     /*! Samples the light for a point to shade. \returns the radiance
      *  arriving from the sampled direction. */
     virtual Color sample (const DifferentialGeometry& dg, /*!< The shade point that is illuminated. */
-                          Sample3f& wi,                   /*!< Returns the sampled direction including PDF.*/
-                          float& tMax,                    /*!< Returns the distance of the light. */
+                          //Sample3f& wi,                   /*!< Returns the sampled direction including PDF.*/
+                          //float& tMax,                    /*!< Returns the distance of the light. */
+							LightSample &ls,
                           const Vec2f& sample)            /*!< Sample locations are provided by the caller. */ const { return zero; }
 
     /*! Evaluates the probability distribution function used by the

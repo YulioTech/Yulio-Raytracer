@@ -45,8 +45,8 @@ namespace embree
       return new DirectionalLight(xfmVector(xfm,_wo),E,illumMask,shadowMask);
     }
 
-    Color sample(const DifferentialGeometry& dg, Sample3f& wi, float& tMax, const Vec2f& s) const {
-      wi = _wo; tMax = inf; return E;
+    Color sample(const DifferentialGeometry& dg, LightSample &ls, const Vec2f& s) const {
+      ls.wi = _wo; ls.tMax = inf; return E;
     }
 
     float pdf(const DifferentialGeometry& dg, const Vector3f& wi) const {

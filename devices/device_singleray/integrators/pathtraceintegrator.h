@@ -41,14 +41,17 @@ namespace embree
 				: lastRay(ray), lastMedium(medium), depth(depth), throughput(throughput), ignoreVisibleLights(ignoreVisibleLights), unbent(unbent) {}
 
 			/*! Extends a light path. */
-			__forceinline LightPath extended(const Ray& nextRay, const Medium& nextMedium, const Color& weight, const bool ignoreVL) const {
-				return LightPath(nextRay, nextMedium, depth + 1, throughput*weight, ignoreVL, true/*unbent && (nextRay.dir == lastRay.dir)*/);
+			__forceinline LightPath extended(const Ray& nextRay, const Medium& nextMedium, const Color& weight, float invBrdfPdf, const bool ignoreVL) const {
+				LightPath lp(nextRay, nextMedium, depth + 1, throughput*weight, ignoreVL, unbent && (nextRay.dir == lastRay.dir));
+				lp.misWeight = lp.throughput * invBrdfPdf;
+				return lp;
 			}
 
 		public:
 			Ray lastRay;                 /*! Last ray in the path. */
 			Medium lastMedium;           /*! Medium the last ray travels inside. */
 			uint32 depth;                /*! Recursion depth of path. */
+			Color misWeight = one;	/*! Inverse BRDF PDF for the last sample multiplied by throughput */
 			Color throughput;            /*! Determines the fraction of radiance that reaches the pixel along the path. */
 			bool ignoreVisibleLights;    /*! If the previous shade point used shadow rays we have to ignore the emission
 											 of geometrical lights to not double count them. */
@@ -76,6 +79,7 @@ namespace embree
 		float epsilon;                 //!< Epsilon to avoid self intersections.
 		float tMaxShadowRay;			//!< Max length of a shadow ray (i.e. an actual ray used to test for occlusion, not just any secondary, aka "shadow", ray)
 		Ref<Image> backplate;          //!< High resolution background.
+		bool strictNormals = false;
 
 		/*! Random variables. */
 	private:

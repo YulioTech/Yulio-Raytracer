@@ -11,7 +11,7 @@ namespace embree
 		: lightSampleID(-1), firstScatterSampleID(-1), firstScatterTypeSampleID(-1)
 	{
 		maxDepth = parms.getInt("maxDepth", 10);
-		minContribution = parms.getFloat("minContribution", .01f);
+		minContribution = parms.getFloat("minContribution", .02f);
 		epsilon = parms.getFloat("epsilon", 32.f) * float(ulp);
 		tMaxShadowRay = parms.getFloat("tMaxShadowRay", std::numeric_limits<float>::infinity());
 		backplate = parms.getImage("backplate");
@@ -31,7 +31,7 @@ namespace embree
 		firstScatterTypeSampleID = samplerFactory->request1D((int)maxDepth);
 	}
 
-	// Non-recursive standard version
+	// Non-recursive standard (one central ray) version
 	Color GPTIntegrator::Li(LightPath& lightPath, const Ref<BackendScene>& scene, IntegratorState& state)
 	{
 #if 0
@@ -45,10 +45,6 @@ namespace embree
 		Color L = zero;
 
 		while (true) {
-
-			/*! Terminate path if too long or contribution too low. */
-			if (reduce_max(lightPath.throughput) < minContribution)
-				break;
 
 			/*! Traverse ray. */
 			DifferentialGeometry dg;
@@ -64,12 +60,12 @@ namespace embree
 				if (backplate && lightPath.unbent) {
 					const int x = clamp(int(state.pixel.x * backplate->width), 0, int(backplate->width) - 1);
 					const int y = clamp(int(state.pixel.y * backplate->height), 0, int(backplate->height) - 1);
-					L += lightPath.throughput * backplate->get(x, y);
+					L += lightPath.misWeight * backplate->get(x, y);
 				}
 				else {
 					if (!lightPath.ignoreVisibleLights)
 						for (size_t i = 0; i < scene->envLights.size(); i++)
-							L += lightPath.throughput * scene->envLights[i]->Le(wo);
+							L += lightPath.misWeight * scene->envLights[i]->Le(wo);
 				}
 
 				break;
@@ -88,7 +84,7 @@ namespace embree
 
 			/*! Add light emitted by hit area light source. */
 			if (!lightPath.ignoreVisibleLights && dg.light && !backfacing)
-				L += lightPath.throughput * dg.light->Le(dg, wo);
+				L += lightPath.misWeight * dg.light->Le(dg, wo);
 
 			/*! Check if any BRDF component uses direct lighting. */
 			bool useDirectLighting = false;
@@ -106,7 +102,7 @@ namespace embree
 					if (scene->allLights[i]->precompute())
 						ls = state.sample->getLightSample(precomputedLightSampleID[i]);
 					else
-						ls.L = scene->allLights[i]->sample(dg, ls.wi, ls.tMax, state.sample->getVec2f(lightSampleID));
+						ls.L = scene->allLights[i]->sample(dg, ls, state.sample->getVec2f(lightSampleID));
 
 					/*! Ignore zero radiance or illumination from the back. */
 					//if (ls.L == Color(zero) || ls.wi.pdf == 0.0f || dot(dg.Ns,Vector3f(ls.wi)) <= 0.0f) continue; 
@@ -117,17 +113,15 @@ namespace embree
 					if (brdf == Color(zero)) continue;
 
 					/*! Test for shadows. */
-					{
-						ls.tMax = tMaxShadowRay;
-						Ray shadowRay(dg.P, ls.wi, dg.error*epsilon, ls.tMax - dg.error*epsilon, lightPath.lastRay.time, dg.shadowMask);
-						//bool inShadow = scene->intersector->occluded(shadowRay);
-						rtcOccluded(scene->scene, (RTCRay&)shadowRay);
-						state.numRays++;
-						if (shadowRay) continue;
-					}
+					ls.tMax = tMaxShadowRay;
+					Ray shadowRay(dg.P, ls.wi, dg.error*epsilon, ls.tMax - dg.error*epsilon, lightPath.lastRay.time, dg.shadowMask);
+					//bool inShadow = scene->intersector->occluded(shadowRay);
+					rtcOccluded(scene->scene, (RTCRay&)shadowRay);
+					state.numRays++;
+					if (shadowRay) continue;
 
 					/*! Evaluate BRDF. */
-					L += lightPath.throughput * ls.L * brdf * rcp(ls.wi.pdf);
+					L += lightPath.misWeight * ls.L * brdf * rcp(ls.wi.pdf);
 				}
 			}
 
@@ -151,14 +145,17 @@ namespace embree
 					c *= pow(transmission, lightPath.lastRay.tfar);
 				}
 
+				/*! Terminate path if the contribution is too low. */
+				if (reduce_max(lightPath.throughput * c) < minContribution)
+					break;
+
 				/*! Tracking medium if we hit a medium interface. */
 				Medium nextMedium = lightPath.lastMedium;
 				if (type & TRANSMISSION)
 					nextMedium = dg.material->nextMedium(lightPath.lastMedium);
 
 				/*! Continue the path. */
-				const auto weight = c * rcp(wi.pdf);
-				lightPath = lightPath.extended(Ray(dg.P, wi, dg.error*epsilon, inf, lightPath.lastRay.time), nextMedium, weight, (type & directLightingBRDFTypes) != NONE);
+				lightPath = lightPath.extended(Ray(dg.P, wi, dg.error*epsilon, inf, lightPath.lastRay.time), nextMedium, c, rcp(wi.pdf), (type & directLightingBRDFTypes) != NONE);
 			}
 		} // while (lightPath.depth < maxDepth)
 
@@ -170,9 +167,7 @@ namespace embree
 		return Li(path, scene, state);
 	}
 
-
 	////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 	void GPTIntegrator::evaluate(LightPath &basePath, LightPath *shiftedPaths, int shiftedCount, Color &outVeryDirect, const Ref<BackendScene>& scene, IntegratorState& state)
 	{
 #if 0
@@ -184,10 +179,6 @@ namespace embree
 #endif
 
 		while (true) {
-
-			/*! Terminate path if too long or contribution too low. */
-			if (reduce_max(basePath.throughput) < minContribution)
-				break;
 
 			/*! Traverse ray. */
 			//scene->intersector->intersect(lightPath.lastRay);
@@ -201,12 +192,12 @@ namespace embree
 				if (backplate && basePath.unbent) {
 					const int x = clamp(int(state.pixel.x * backplate->width), 0, int(backplate->width) - 1);
 					const int y = clamp(int(state.pixel.y * backplate->height), 0, int(backplate->height) - 1);
-					outVeryDirect += basePath.throughput * backplate->get(x, y);
+					outVeryDirect += basePath.misWeight * backplate->get(x, y);
 				}
 				else {
 					if (!basePath.ignoreVisibleLights)
 						for (size_t i = 0; i < scene->envLights.size(); i++)
-							outVeryDirect += basePath.throughput * scene->envLights[i]->Le(wo);
+							outVeryDirect += basePath.misWeight * scene->envLights[i]->Le(wo);
 				}
 
 				break;
@@ -247,7 +238,7 @@ namespace embree
 
 			/*! Add light emitted by hit area light source. */
 			if (!basePath.ignoreVisibleLights && basePath.lastDG.light && !backfacing)
-				outVeryDirect += basePath.throughput * basePath.lastDG.light->Le(basePath.lastDG, wo);
+				outVeryDirect += basePath.misWeight * basePath.lastDG.light->Le(basePath.lastDG, wo);
 
 			/*! Check if any BRDF component uses direct lighting. */
 			bool useDirectLighting = false;
@@ -267,7 +258,7 @@ namespace embree
 						ls = state.sample->getLightSample(precomputedLightSampleID[i]);
 					else
 					*/
-						ls.L = scene->allLights[i]->sample(basePath.lastDG, ls.wi, ls.tMax, state.sample->getVec2f(lightSampleID));
+						ls.L = scene->allLights[i]->sample(basePath.lastDG, ls, state.sample->getVec2f(lightSampleID));
 
 					// There values are probably needed soon for the Jacobians.
 					//float mainDistanceSquared = (basePath.lastDG.P - dRec.p).lengthSquared();
@@ -282,17 +273,15 @@ namespace embree
 					if (brdf == Color(zero)) continue;
 
 					/*! Test for shadows. */
-					{
-						ls.tMax = tMaxShadowRay;
-						Ray shadowRay(basePath.lastDG.P, ls.wi, basePath.lastDG.error*epsilon, ls.tMax - basePath.lastDG.error*epsilon, basePath.lastRay.time, basePath.lastDG.shadowMask);
-						//bool inShadow = scene->intersector->occluded(shadowRay);
-						rtcOccluded(scene->scene, (RTCRay&)shadowRay);
-						state.numRays++;
-						if (shadowRay) continue;
-					}
+					ls.tMax = tMaxShadowRay;
+					Ray shadowRay(basePath.lastDG.P, ls.wi, basePath.lastDG.error*epsilon, ls.tMax - basePath.lastDG.error*epsilon, basePath.lastRay.time, basePath.lastDG.shadowMask);
+					//bool inShadow = scene->intersector->occluded(shadowRay);
+					rtcOccluded(scene->scene, (RTCRay&)shadowRay);
+					state.numRays++;
+					if (shadowRay) continue;
 
 					/*! Evaluate BRDF. */
-					outVeryDirect += basePath.throughput * ls.L * brdf * rcp(ls.wi.pdf);
+					outVeryDirect += basePath.misWeight * ls.L * brdf * rcp(ls.wi.pdf);
 				}
 			}
 
@@ -316,14 +305,17 @@ namespace embree
 					c *= pow(transmission, basePath.lastRay.tfar);
 				}
 
+				/*! Terminate path if the contribution is too low. */
+				if (reduce_max(basePath.throughput * c) < minContribution)
+					break;
+
 				/*! Tracking medium if we hit a medium interface. */
 				Medium nextMedium = basePath.lastMedium;
 				if (type & TRANSMISSION)
 					nextMedium = basePath.lastDG.material->nextMedium(basePath.lastMedium);
 
 				/*! Continue the path. */
-				const auto weight = c * rcp(wi.pdf);
-				basePath = basePath.extended(Ray(basePath.lastDG.P, wi, basePath.lastDG.error*epsilon, inf, basePath.lastRay.time), nextMedium, weight, (type & directLightingBRDFTypes) != NONE);
+				basePath = basePath.extended(Ray(basePath.lastDG.P, wi, basePath.lastDG.error*epsilon, inf, basePath.lastRay.time), nextMedium, c, rcp(wi.pdf), (type & directLightingBRDFTypes) != NONE);
 			}
 		} // while (lightPath.depth < maxDepth)
 	}
