@@ -122,8 +122,16 @@ namespace embree
 		{
 			for (size_t i = 0; i < geometry.size(); i++) {
 				const Ref<Primitive>& prim = geometry[i];
-				if (prim && prim->light) add(prim->light);
+				if (prim && prim->light)
+					add(prim->light);
+				else
+					add(prim->shape);
 			}
+
+			for (auto &light : allLights) {
+				light->createShape(this);
+			}
+
 		}
 
 		/*! Helper to call the post intersector of the shape instance,

@@ -154,6 +154,7 @@ namespace embree
   ////////////////////////////////////////////////////////////////////////////////
 
   template<typename T> __forceinline T       dot      ( const Vec3<T>& a, const Vec3<T>& b ) { return madd(a.x,b.x,madd(a.y,b.y,a.z*b.z)); }
+  template<typename T> __forceinline T       lengthSquared	(const Vec3<T>& a) { return dot(a, a); }
   template<typename T> __forceinline T       length   ( const Vec3<T>& a )                   { return sqrt(dot(a,a)); }
   template<typename T> __forceinline Vec3<T> normalize( const Vec3<T>& a )                   { return a*rsqrt(dot(a,a)); }
   template<typename T> __forceinline T       distance ( const Vec3<T>& a, const Vec3<T>& b ) { return length(a-b); }

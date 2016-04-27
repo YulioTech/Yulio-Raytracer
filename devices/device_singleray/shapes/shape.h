@@ -103,6 +103,7 @@ namespace embree
 
 		/*! Extracts triangles for spatial index structure. */
 		virtual BBox3f extract(RTCScene scene, size_t id) const = 0;
+		virtual BBox3f bbox() const = 0;
 
 		/*! Performs interpolation of shading vertex parameters. */
 		virtual void postIntersect(const Ray& ray, DifferentialGeometry& dg) const = 0;

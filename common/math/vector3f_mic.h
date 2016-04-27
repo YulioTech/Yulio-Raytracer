@@ -235,7 +235,8 @@ namespace embree
     return c;
   }
 
-  __forceinline float   length   ( const Vector3f& a )                   { return sqrt(dot(a,a)); }
+  __forceinline float    lengthSquared(const Vector3f& a) { return dot(a, a); }
+  __forceinline float   length(const Vector3f& a) { return sqrt(dot(a, a)); }
   __forceinline Vector3f normalize( const Vector3f& a )                   { return a*rsqrt(dot(a,a)); }
   __forceinline float   distance ( const Vector3f& a, const Vector3f& b ) { return length(a-b); }
 

@@ -19,6 +19,7 @@
 
 #include "vec2.h"
 #include "vec3.h"
+#include "bsphere.h"
 
 namespace embree
 {
@@ -69,6 +70,12 @@ namespace embree
 	/*! computes the center of the box */
 	template<typename T> __forceinline const T center(const BBox<T>& box) { return T(.5f)*(box.lower + box.upper); }
 	template<typename T> __forceinline const T center2(const BBox<T>& box) { return box.lower + box.upper; }
+
+	template<typename T>
+	__forceinline BSphere<T> getBSphere(const BBox<T> &bbox) {
+		const auto c = center(bbox);
+		return BSphere<T>(c, length(c - bbox.upper));
+	}
 
 	/*! computes the size of the box */
 	template<typename T> __forceinline const T size(const BBox<T>& box) { return box.upper - box.lower; }
@@ -153,7 +160,7 @@ namespace embree
 	}
 
 	/*! default template instantiations */
-	typedef BBox<Vec2f > BBox2f;
+	typedef BBox<Vec2f> BBox2f;
 	typedef BBox<Vector3f > BBox3f;
 }
 

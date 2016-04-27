@@ -40,6 +40,12 @@ namespace embree
 			L = parms.getColor("L");
 		}
 
+		Ref<Shape> createShape(const Ref<BackendScene> &scene) {
+			bsphere = getBSphere(scene->sceneBBox);
+			bsphere.radius = max(std::numeric_limits<float>::epsilon(), bsphere.radius * 1.5f);
+			return null;
+		}
+
 		Ref<Light> transform(const AffineSpace3f& xfm,
 			light_mask_t illumMask,
 			light_mask_t shadowMask) const {
@@ -56,7 +62,15 @@ namespace embree
 
 		Color sample(const DifferentialGeometry& dg, LightSample &ls, const Vec2f& s) const {
 			ls.wi = cosineSampleHemisphere(s.x, s.y, dg.Ns);
-			ls.tMax = inf;
+			if (bsphere != empty) {
+				float tMin;
+				if (bsphere.rayIntersect(dg.P, ls.wi, tMin, ls.tMax)) {
+					ls.p = dg.P + ls.wi * ls.tMax;
+				}
+			}
+			else {
+				ls.tMax = inf;
+			}
 			return L;
 		}
 
@@ -66,7 +80,7 @@ namespace embree
 
 	protected:
 		Color L;          //!< Radiance (W/(m^2*sr))
-		BSphere<Vector3f> bsphere;
+		BSphere<Vector3f> bsphere = empty;
 	};
 }
 

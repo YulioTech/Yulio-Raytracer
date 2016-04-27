@@ -24,90 +24,100 @@
 namespace embree
 {
 	struct LightSample;
+	class BackendScene;
 
-  /*! Interface to different lights. A light can be evaluated,
-   *  sampled, and the sampling PDF be evaluated. */
-  class Light : public RefCount {
-    ALIGNED_CLASS
-  public:
+	/*! Interface to different lights. A light can be evaluated,
+	 *  sampled, and the sampling PDF be evaluated. */
+	class Light : public RefCount {
+		ALIGNED_CLASS
+	public:
 
-    Light(light_mask_t illumMask=-1,
-          light_mask_t shadowMask=-1) 
-      : illumMask(illumMask), shadowMask(shadowMask) 
-    {};
+		Light(light_mask_t illumMask = -1,
+			light_mask_t shadowMask = -1)
+			: illumMask(illumMask), shadowMask(shadowMask)
+		{};
 
-    /*! Lights need a virtual destructor. */
-    virtual ~Light() {}
+		/*! Lights need a virtual destructor. */
+		virtual ~Light() {}
 
-    /*! Instantiates a new light by transforming this light to a different location. */
-    virtual Ref<Light> transform (const AffineSpace3f& xfm,
-                                  light_mask_t illumMask,
-                                  light_mask_t shadowMask) const = 0;
+		/*! Instantiates a new light by transforming this light to a different location. */
+		virtual Ref<Light> transform(const AffineSpace3f& xfm,
+			light_mask_t illumMask,
+			light_mask_t shadowMask) const = 0;
 
-    /*! Returns the shape of the light. */
-    virtual Ref<Shape> shape() { return null; }
+		/*! Returns the shape of the light. */
+		virtual Ref<Shape> shape() { return null; }
 
-    /*! Evaluates the radiance that would arrive at a given location
-     *  from a given direction assuming no blocking geometry. \returns
-     *  the emitted radiance. */
-    virtual Color eval (const DifferentialGeometry& dg, /*!< The shade point that is illuminated.    */
-                        const Vector3f& wi)                /*!< The direction the light is coming from. */ const
-    {
-      return zero;
-    }
+		/*! Initializes the shape of the light. */
+		virtual Ref<Shape> createShape(const Ref<BackendScene> &scene) { return null; }
 
-    /*! Samples the light for a point to shade. \returns the radiance
-     *  arriving from the sampled direction. */
-    virtual Color sample (const DifferentialGeometry& dg, /*!< The shade point that is illuminated. */
-                          //Sample3f& wi,                   /*!< Returns the sampled direction including PDF.*/
-                          //float& tMax,                    /*!< Returns the distance of the light. */
-							LightSample &ls,
-                          const Vec2f& sample)            /*!< Sample locations are provided by the caller. */ const { return zero; }
+		/*! Evaluates the radiance that would arrive at a given location
+		 *  from a given direction assuming no blocking geometry. \returns
+		 *  the emitted radiance. */
+		virtual Color eval(const DifferentialGeometry& dg, /*!< The shade point that is illuminated.    */
+			const Vector3f& wi)                /*!< The direction the light is coming from. */ const
+		{
+			return zero;
+		}
 
-    /*! Evaluates the probability distribution function used by the
-     *  sampling function of the light for a shade location and
-     *  direction. \returns the probability density */
-    virtual float pdf (const DifferentialGeometry& dg,   /*!< The shade location to compute the PDF for. */
-                       const Vector3f& wi)                   /*!< The direction to compute the PDF for. */ const { return zero; }
+		/*! Samples the light for a point to shade. \returns the radiance
+		 *  arriving from the sampled direction. */
+		virtual Color sample(const DifferentialGeometry& dg, /*!< The shade point that is illuminated. */
+							  //Sample3f& wi,                   /*!< Returns the sampled direction including PDF.*/
+							  //float& tMax,                    /*!< Returns the distance of the light. */
+			LightSample &ls,
+			const Vec2f& sample)            /*!< Sample locations are provided by the caller. */ const {
+			return zero;
+		}
 
-    /*! Indicates that the sampling of the light is expensive and the
-     *  integrator should presample the light. */
-    virtual bool precompute() const { return false; }
+		/*! Evaluates the probability distribution function used by the
+		 *  sampling function of the light for a shade location and
+		 *  direction. \returns the probability density */
+		virtual float pdf(const DifferentialGeometry& dg,   /*!< The shade location to compute the PDF for. */
+			const Vector3f& wi)                   /*!< The direction to compute the PDF for. */ const {
+			return zero;
+		}
 
-    light_mask_t illumMask;
-    light_mask_t shadowMask;
-  };
+		/*! Indicates that the sampling of the light is expensive and the
+		 *  integrator should presample the light. */
+		virtual bool precompute() const { return false; }
 
-  /*! Interface to an area light. In addition to a basic light, the
-   * area light allows to query the emitted radiance at a location on
-   * the light itself. */
-  class AreaLight : public Light {
-  public:
+		light_mask_t illumMask;
+		light_mask_t shadowMask;
+	};
 
-    AreaLight(light_mask_t illumMask=-1,
-                     light_mask_t shadowMask=-1)
-      : Light(illumMask,shadowMask) 
-    {}
+	/*! Interface to an area light. In addition to a basic light, the
+	 * area light allows to query the emitted radiance at a location on
+	 * the light itself. */
+	class AreaLight : public Light {
+	public:
 
-    /*! Returns the the emitted radiance for a location on the light
-     *  and direction. */
-    virtual Color Le(const DifferentialGeometry& dg,     /*!< The location on the light. */
-                     const Vector3f& wo)                    /*!< The direction the light is emitted into. */ const { return zero; }
-  };
+		AreaLight(light_mask_t illumMask = -1,
+			light_mask_t shadowMask = -1)
+			: Light(illumMask, shadowMask)
+		{}
 
-  /*! Interface to an environment light. In addition to a basic light,
-   * an environment light allows to query the emitted radiance for a
-   * direction. */
-  class EnvironmentLight : public Light {
-  public:
+		/*! Returns the the emitted radiance for a location on the light
+		 *  and direction. */
+		virtual Color Le(const DifferentialGeometry& dg,     /*!< The location on the light. */
+			const Vector3f& wo)                    /*!< The direction the light is emitted into. */ const {
+			return zero;
+		}
+	};
 
-    EnvironmentLight(light_mask_t illumMask=-1,
-                     light_mask_t shadowMask=-1)
-      : Light(illumMask,shadowMask) 
-    {}
-    /*! Returns the emitted radiance of the environment light. */
-    virtual Color Le(const Vector3f& wo                     /*!< The direction the light comes from. */) const { return zero; }
-  };
+	/*! Interface to an environment light. In addition to a basic light,
+	 * an environment light allows to query the emitted radiance for a
+	 * direction. */
+	class EnvironmentLight : public Light {
+	public:
+
+		EnvironmentLight(light_mask_t illumMask = -1,
+			light_mask_t shadowMask = -1)
+			: Light(illumMask, shadowMask)
+		{}
+		/*! Returns the emitted radiance of the environment light. */
+		virtual Color Le(const Vector3f& wo                     /*!< The direction the light comes from. */) const { return zero; }
+	};
 }
 
 #endif

@@ -29,48 +29,56 @@ namespace embree
 		float radius;
 
 		/// Construct a bounding sphere at the origin having radius zero
-		inline BSphere() : center(0.0f), radius(0.0f) { }
+		__forceinline BSphere() : center(0.f), radius(0.f) { }
+		__forceinline BSphere& operator=(const BSphere& other) { center = other.center; radius = other.radius; return *this; }
+
+		__forceinline BSphere(EmptyTy) : center(0.f), radius(0.f) {}
+		//__forceinline BSphere(FullTy) : lower(neg_inf), upper(pos_inf) {}
+		//__forceinline BSphere(FalseTy) : lower(pos_inf), upper(neg_inf) {}
+		//__forceinline BSphere(TrueTy) : lower(neg_inf), upper(pos_inf) {}
+		//__forceinline BSphere(NegInfTy) : lower(pos_inf), upper(neg_inf) {}
+		//__forceinline BSphere(PosInfTy) : lower(neg_inf), upper(pos_inf) {}
 
 		/*
 		/// Unserialize a bounding sphere from a binary data stream
-		inline BSphere(Stream *stream) {
+		__forceinline BSphere(Stream *stream) {
 			center = Point(stream);
 			radius = stream->readFloat();
 		}
 		*/
 
 		/// Create a bounding sphere from a given center point and radius
-		inline BSphere(const T &center, float radius)
+		__forceinline BSphere(const T &center, float radius)
 			: center(center), radius(radius) {
 		}
 
 		/// Copy constructor
-		inline BSphere(const BSphere &boundingSphere)
+		__forceinline BSphere(const BSphere &boundingSphere)
 			: center(boundingSphere.center), radius(boundingSphere.radius) {
 		}
 
 		/// Return whether this bounding sphere has a radius of zero or less.
-		inline bool isEmpty() const {
+		__forceinline bool isEmpty() const {
 			return radius <= 0.f;
 		}
 
 		/// Expand the bounding sphere radius to contain another point.
-		inline void expandBy(const T p) {
+		__forceinline void expandBy(const T p) {
 			radius = std::max(radius, (p - center).length());
 		}
 
 		/// Check whether the specified point is inside or on the sphere
-		inline bool contains(const T p) const {
+		__forceinline bool contains(const T p) const {
 			return (p - center).length() <= radius;
 		}
 
 		/// Equality test
-		inline bool operator==(const BSphere &boundingSphere) const {
+		__forceinline bool operator==(const BSphere &boundingSphere) const {
 			return center == boundingSphere.center && radius == boundingSphere.radius;
 		}
 
 		/// Inequality test
-		inline bool operator!=(const BSphere &boundingSphere) const {
+		__forceinline bool operator!=(const BSphere &boundingSphere) const {
 			return center != boundingSphere.center || radius != boundingSphere.radius;
 		}
 
@@ -82,24 +90,24 @@ namespace embree
 		 * \c nearT and \c farT values as a tuple (or \c None, when no
 		 * intersection was found)
 		 */
-		inline bool rayIntersect(const Vector3f &rayO, const Vector3f &rayD, float &nearHit, float &farHit) const {
-			Vector3f o = rayO - center;
-			float A = rayD.lengthSquared();
-			float B = 2 * dot(o, ray.d);
-			float C = o.lengthSquared() - radius*radius;
+		__forceinline bool rayIntersect(const Vector3f &rayO, const Vector3f &rayD, float &nearHit, float &farHit) const {
+			const Vector3f o = rayO - center;
+			const float A = lengthSquared(rayD);
+			const float B = 2 * dot(o, rayD);
+			const float C = lengthSquared(o) - radius*radius;
 
 			return solveQuadratic(A, B, C, nearHit, farHit);
 		}
 
 		/*
 		/// Serialize this bounding sphere to a binary data stream
-		inline void serialize(Stream *stream) const {
+		__forceinline void serialize(Stream *stream) const {
 			center.serialize(stream);
 			stream->writeFloat(radius);
 		}
 
 		/// Return a string representation of the bounding sphere
-		inline std::string toString() const {
+		__forceinline std::string toString() const {
 			std::ostringstream oss;
 			oss << "BSphere[center = " << center.toString()
 				<< ", radius = " << radius << "]";
@@ -107,4 +115,9 @@ namespace embree
 		}
 		*/
 	};
+
+	/*! default template instantiations */
+	typedef BSphere<Vec2f> BSphere2f;
+	typedef BSphere<Vector3f> BSphere3f;
+
 } //namespace embree

@@ -76,14 +76,21 @@ namespace embree
 			if (Ref<EnvironmentLight> envlight = dynamic_cast<EnvironmentLight*>(light.ptr)) envLights.push_back(envlight);
 		}
 
+		void add(const Ref<Shape>& shape) {
+			allShapes.push_back(shape);
+			sceneBBox = merge(sceneBBox, shape->bbox());
+		}
+
 		/*! Helper to call the post intersector of the shape instance,
 		 *  which will call the post intersector of the shape. */
 		virtual void postIntersect(const Ray& ray, DifferentialGeometry& dg) const = 0;
 
 	public:
 		std::vector<Ref<Light>> allLights;              //!< All lights of the scene
+		std::vector<Ref<Shape>> allShapes;              //!< All shapes of the scene
 		std::vector<Ref<EnvironmentLight>> envLights;   //!< Environment lights of the scene
 		RTCScene scene;
+		BBox3f sceneBBox = empty;
 	};
 }
 

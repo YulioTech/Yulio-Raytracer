@@ -72,6 +72,15 @@ namespace embree
 			return bounds;
 		}
 
+		BBox3f bbox() const
+		{
+			BBox3f bounds = empty;
+			bounds.grow(v0);
+			bounds.grow(v1);
+			bounds.grow(v2);
+			return bounds;
+		}
+
 		/*! Post intersection to compute shading data. */
 		void postIntersect(const Ray& ray, DifferentialGeometry& dg) const {
 			dg.P = ray.org + ray.tfar*ray.dir;

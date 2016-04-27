@@ -126,6 +126,17 @@ namespace embree
 		return bounds;
 	}
 
+	BBox3f TriangleMeshWithNormals::bbox() const {
+		BBox3f bounds = empty;
+
+		for (size_t j = 0; j < vertices.size(); j++) {
+			const Vector3f p = vertices[j].p;
+			bounds.grow(p);
+		}
+
+		return bounds;
+	}
+
 	void TriangleMeshWithNormals::postIntersect(const Ray& ray, DifferentialGeometry& dg) const
 	{
 		const Triangle& tri = triangles[ray.id1];

@@ -108,7 +108,7 @@ namespace embree
 	template<typename L> __forceinline const VectorT xfmVector(const AffineSpaceT<L>& m, const VectorT& v) { return xfmVector(m.l, v); }
 	template<typename L> __forceinline const VectorT xfmNormal(const AffineSpaceT<L>& m, const VectorT& n) { return xfmNormal(m.l, n); }
 
-	__forceinline const BBox<Vector3f> xfmBounds(const AffineSpaceT<LinearSpace3<Vector3f> >& m, const BBox<Vector3f>& b)
+	__forceinline const BBox<Vector3f> xfmBounds(const AffineSpaceT<LinearSpace3<Vector3f>>& m, const BBox<Vector3f>& b)
 	{
 		BBox3f dst = empty;
 		const Vector3f p0(b.lower.x, b.lower.y, b.lower.z); dst.grow(xfmPoint(m, p0));
