@@ -40,8 +40,8 @@ namespace embree
 			L = parms.getColor("L");
 		}
 
-		Ref<Shape> createShape(const Ref<BackendScene> &scene) {
-			bsphere = getBSphere(scene->sceneBBox);
+		Ref<Shape> createShape(const BackendScene &scene) {
+			bsphere = getBSphere(scene.sceneBBox);
 			bsphere.radius = max(std::numeric_limits<float>::epsilon(), bsphere.radius * 1.5f);
 			return null;
 		}
@@ -66,6 +66,7 @@ namespace embree
 				float tMin;
 				if (bsphere.rayIntersect(dg.P, ls.wi, tMin, ls.tMax)) {
 					ls.p = dg.P + ls.wi * ls.tMax;
+					ls.n = normalize(bsphere.center - ls.p);
 				}
 			}
 			else {

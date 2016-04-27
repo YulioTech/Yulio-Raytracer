@@ -38,9 +38,11 @@ namespace embree
 		}
 
 		Color sample(const Vector3f& wo, const DifferentialGeometry& dg, Sample3f& wi, const Vec2f& s) const {
-			float cosThetaO = clamp(dot(wo, dg.Ns));
+			const float cosThetaO = clamp(dot(wo, dg.Ns));
 			wi = reflect(wo, dg.Ns, cosThetaO);
-			return alpha * Color(fresnelDielectric(cosThetaO, eta));
+			const auto c = alpha * Color(fresnelDielectric(cosThetaO, eta));
+			wi.eta = 1.f; 
+			return c;
 		}
 
 		float pdf(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
@@ -73,7 +75,9 @@ namespace embree
 			const float cosThetaO = clamp(dot(wo, dg.Ns));
 			float cosThetaI;
 			wi = refract(wo, dg.Ns, eta, cosThetaO, cosThetaI);
-			return Color(1.0f - fresnelDielectric(cosThetaO, cosThetaI, eta));
+			const Color c = Color(1.0f - fresnelDielectric(cosThetaO, cosThetaI, eta));
+			wi.eta = cosThetaI < 0.f ? eta : rcp(eta);
+			return c;
 		}
 
 		float pdf(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
@@ -111,7 +115,10 @@ namespace embree
 			const float cosTheta = clamp(dot(wo, dg.Ns));
 			if (cosTheta <= 0.0f) return zero;
 			const float alpha = thickness * rcp(cosTheta);
-			return exp(logT * alpha) * (1.f - fresnelDielectric(cosTheta, eta));
+			float cosThetaT;
+			const Color c = exp(logT * alpha) * (1.f - fresnelDielectric(cosTheta, eta, &cosThetaT));
+			wi.eta = cosThetaT < 0.f ? eta : rcp(eta);
+			return c;
 		}
 
 		float pdf(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {

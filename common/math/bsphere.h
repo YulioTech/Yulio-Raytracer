@@ -105,16 +105,13 @@ namespace embree
 			center.serialize(stream);
 			stream->writeFloat(radius);
 		}
-
-		/// Return a string representation of the bounding sphere
-		__forceinline std::string toString() const {
-			std::ostringstream oss;
-			oss << "BSphere[center = " << center.toString()
-				<< ", radius = " << radius << "]";
-			return oss.str();
-		}
 		*/
 	};
+
+	/*! output operator */
+	template<typename T> __forceinline std::ostream& operator<<(std::ostream& cout, const BSphere<T>& s) {
+		return cout << "[ center = " << s.center << ", radius = " << s.radius << "]";
+	}
 
 	/*! default template instantiations */
 	typedef BSphere<Vec2f> BSphere2f;

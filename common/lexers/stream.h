@@ -185,14 +185,14 @@ namespace embree
 			: i(0), j(0), charNumber(0), name(new String(name))
 		{
 			if (argc > 0) charNumber = strlen(argv[0]) + 1;
-			for (ssize_t k = 1; k < argc; k++)
+			for (size_t k = 1; k < argc; k++)
 				args.push_back(argv[k]);
 		}
 		CommandLineStream(const std::vector <std::string> &argv , const std::string& name = "command line")
 			: i(0), j(0), charNumber(0), name(new String(name))
 		{
 			if (argv.size() > 0) charNumber = strlen(argv[0].c_str()) + 1;
-			for (ssize_t k = 1; k < argv.size(); k++)
+			for (size_t k = 1; k < argv.size(); k++)
 				args.push_back(argv[k]);
 		}
 		~CommandLineStream() {}

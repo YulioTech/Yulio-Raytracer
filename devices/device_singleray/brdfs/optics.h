@@ -109,11 +109,12 @@ namespace embree
 	 *  refraction index eta. Eta is the outside refraction index
 	 *  divided by the inside refraction index. The cosine has to be
 	 *  positive. */
-	__forceinline float fresnelDielectric(float cosi, float eta)
+	__forceinline float fresnelDielectric(float cosi, float eta, float *outCosT = nullptr)
 	{
 		float k = 1.0f - eta*eta*(1.0f - cosi*cosi);
 		if (k < 0.0f) return 1.0f;
 		float cost = sqrt(k);
+		if (outCosT) *outCosT = cost;
 		return fresnelDielectric(cosi, cost, eta);
 	}
 

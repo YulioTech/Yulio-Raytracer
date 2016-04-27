@@ -168,7 +168,64 @@ namespace embree
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void GPTIntegrator::evaluate(LightPath &basePath, LightPath *shiftedPaths, int shiftedCount, Color &outVeryDirect, const Ref<BackendScene>& scene, IntegratorState& state)
+
+	/// Returns the vertex type of a vertex by its roughness value.
+	GPTIntegrator::VertexType GPTIntegrator::getVertexTypeByRoughness(float roughness, float shiftThreshold) const {
+		if (roughness <= shiftThreshold) {
+			return VERTEX_TYPE_GLOSSY;
+		}
+		else {
+			return VERTEX_TYPE_DIFFUSE;
+		}
+	}
+
+	/// Returns the vertex type (diffuse / glossy) of a vertex, for the purposes of determining
+	/// the shifting strategy.
+	///
+	/// A bare classification by roughness alone is not good for multi-component BSDFs since they
+	/// may contain a diffuse component and a perfect specular component. If the base path
+	/// is currently working with a sample from a BSDF's smooth component, we don't want to care
+	/// about the specular component of the BSDF right now - we want to deal with the smooth component.
+	///
+	/// For this reason, we vary the classification a little bit based on the situation.
+	/// This is perfectly valid, and should be done.
+	GPTIntegrator::VertexType GPTIntegrator::getVertexType(const CompositedBRDF &brdfs, const DifferentialGeometry &dg, float shiftThreshold, unsigned int bsdfType) const {
+		// Return the lowest roughness value of the components of the vertex's BSDF.
+		// If 'bsdfType' does not have a delta component, do not take perfect speculars (zero roughness) into account in this.
+
+		float lowest_roughness = std::numeric_limits<float>::infinity();
+
+		bool found_smooth = false;
+		bool found_dirac = false;
+		for (int i = 0, component_count = brdfs.size(); i < component_count; ++i) {
+			auto brdf = brdfs[i];
+			const float component_roughness = std::numeric_limits<Float>::infinity();// brdf->getRoughness(its, i);
+
+			if (component_roughness == 0.f) {
+				found_dirac = true;
+				if (!(bsdfType & BSDF::EDelta)) {
+					// Skip Dirac components if a smooth component is requested.
+					continue;
+				}
+			}
+			else {
+				found_smooth = true;
+			}
+
+			if (component_roughness < lowest_roughness) {
+				lowest_roughness = component_roughness;
+			}
+		}
+
+		// Roughness has to be zero also if there is a delta component but no smooth components.
+		if (!found_smooth && found_dirac && !(bsdfType & BSDF::EDelta)) {
+			lowest_roughness = 0.f;
+		}
+
+		return getVertexTypeByRoughness(lowest_roughness, shiftThreshold);
+	}
+
+	void GPTIntegrator::evaluate(LightPath &basePath, LightPath *shiftedPaths, int shiftedCount, Color &outVeryDirect, const Ref<BackendScene> &scene, IntegratorState &state)
 	{
 #if 0
 		BRDFType directLightingBRDFTypes = (BRDFType)(DIFFUSE | GLOSSY);
@@ -178,9 +235,10 @@ namespace embree
 		BRDFType giBRDFTypes = (BRDFType)(ALL);
 #endif
 
+		/*! Traverse ray. */
 		while (true) {
 
-			/*! Traverse ray. */
+			// Perform the first ray intersection for the base path
 			//scene->intersector->intersect(lightPath.lastRay);
 			rtcIntersect(scene->scene, (RTCRay&)basePath.lastRay);
 			state.numRays++;
@@ -200,6 +258,7 @@ namespace embree
 							outVeryDirect += basePath.misWeight * scene->envLights[i]->Le(wo);
 				}
 
+				// First hit is not in the scene so can't continue. Also there are no paths to shift.
 				break;
 			}
 
@@ -225,9 +284,17 @@ namespace embree
 			const bool lastSegment = (basePath.depth + 1 == maxDepth);
 
 			/*! face forward normals */
-			bool backfacing = false;
+			basePath.backFacing = false;
 			if (dot(basePath.lastDG.Ng, basePath.lastRay.dir) > 0) {
-				backfacing = true; basePath.lastDG.Ng = -basePath.lastDG.Ng; basePath.lastDG.Ns = -basePath.lastDG.Ns;
+				basePath.backFacing = true; basePath.lastDG.Ng = -basePath.lastDG.Ng; basePath.lastDG.Ns = -basePath.lastDG.Ns;
+			}
+
+			for (int i = 0; i < shiftedCount; ++i) {
+				LightPath &shiftedPath = shiftedPaths[i];
+				shiftedPath.backFacing = false;
+				if (dot(shiftedPath.lastDG.Ng, shiftedPath.lastRay.dir) > 0) {
+					shiftedPath.backFacing = true; shiftedPath.lastDG.Ng = -shiftedPath.lastDG.Ng; shiftedPath.lastDG.Ns = -shiftedPath.lastDG.Ns;
+				}
 			}
 
 			/*! Shade surface. */
@@ -235,10 +302,11 @@ namespace embree
 			if (basePath.lastDG.material)
 				basePath.lastDG.material->shade(basePath.lastRay, basePath.lastMedium, basePath.lastDG, baseBRDFs);
 
-
+#if 0
 			/*! Add light emitted by hit area light source. */
-			if (!basePath.ignoreVisibleLights && basePath.lastDG.light && !backfacing)
+			if (!basePath.ignoreVisibleLights && basePath.lastDG.light && !basePath.backFacing)
 				outVeryDirect += basePath.misWeight * basePath.lastDG.light->Le(basePath.lastDG, wo);
+#endif
 
 			/*! Check if any BRDF component uses direct lighting. */
 			bool useDirectLighting = false;
@@ -282,6 +350,132 @@ namespace embree
 
 					/*! Evaluate BRDF. */
 					outVeryDirect += basePath.misWeight * ls.L * brdf * rcp(ls.wi.pdf);
+
+					// Stuff from Mitsuba "translated" into our framework
+					{
+						Color mainEmitterRadiance = ls.L;
+						bool mainEmitterVisible = shadowRay;
+						Color mainBSDFValue = brdf;
+						// Calculate the probability density of having generated the sampled path segment by BSDF sampling. Note that if the emitter is not visible, the probability density is zero.
+						// Even if the BSDF sampler has zero probability density, the light sampler can still sample it.
+						float mainBsdfPdf = mainEmitterVisible ? baseBRDFs.pdf(wo, basePath.lastDG, ls.wi, directLightingBRDFTypes) : 0.f;
+
+						// There values are probably needed soon for the Jacobians.
+						float mainDistanceSquared = lengthSquared(basePath.lastDG.P - ls.p);
+						float mainOpposingCosine = dot(ls.n, (basePath.lastDG.P - ls.p)) / sqrt(mainDistanceSquared);
+
+						// Power heuristic weights for the following strategies: light sample from base, BSDF sample from base.
+						float mainWeightNumerator = basePath.pdf * ls.wi.pdf;
+						float mainWeightDenominator = (basePath.pdf * basePath.pdf) * ((ls.wi.pdf * ls.wi.pdf) + (mainBsdfPdf * mainBsdfPdf));
+
+						// The base path is good. Add radiance differences to offset paths.
+						for (int i = 0; i < shiftedCount; ++i) {
+							// Evaluate and apply the gradient.
+							LightPath &shiftedPath = shiftedPaths[i];
+
+							Color  mainContribution = zero;
+							Color shiftedContribution = zero;
+							float weight = 0.f;
+
+							bool shiftSuccessful = shiftedPath.alive;
+
+							// Construct the offset path.
+							if (shiftSuccessful) {
+								// Generate the offset path.
+								if (shiftedPath.connectionState == PATH_CONNECTED) {
+									// Follow the base path. All relevant vertices are shared. 
+									float shiftedBsdfPdf = mainBsdfPdf;
+									float shiftedDRecPdf = ls.wi.pdf;
+									Color shiftedBsdfValue = mainBSDFValue;
+									Color shiftedEmitterRadiance = mainEmitterRadiance;
+									float jacobian = 1.f;
+
+									// Power heuristic between light sample from base, BSDF sample from base, light sample from offset, BSDF sample from offset.
+									float shiftedWeightDenominator = (jacobian * shiftedPath.pdf) * (jacobian * shiftedPath.pdf) * ((shiftedDRecPdf * shiftedDRecPdf) + (shiftedBsdfPdf * shiftedBsdfPdf));
+									weight = mainWeightNumerator / (D_EPSILON + shiftedWeightDenominator + mainWeightDenominator);
+
+									mainContribution = basePath.throughput * (mainBSDFValue * mainEmitterRadiance);
+									shiftedContribution = jacobian * shiftedPath.throughput * (shiftedBsdfValue * shiftedEmitterRadiance);
+
+									// Note: The Jacobians were baked into shifted.pdf and shifted.throughput at connection phase.
+								}
+								else if (shiftedPath.connectionState == PATH_RECENTLY_CONNECTED) {
+									// Follow the base path. The current vertex is shared, but the incoming directions differ.
+									Vector3f incomingDirection = normalize(shiftedPath.lastDG.P - basePath.lastDG.P);
+
+									//BSDFSamplingRecord bRec(main.rRec.its, main.rRec.its.toLocal(incomingDirection), main.rRec.its.toLocal(dRec.d), ERadiance);
+
+									// Sample the BSDF.
+									//Float shiftedBsdfPdf = (emitter->isOnSurface() && dRec.measure == ESolidAngle && mainEmitterVisible) ? mainBSDF->pdf(bRec) : 0; // The BSDF sampler can not sample occluded path segments.
+									float shiftedBsdfPdf = mainEmitterVisible ? baseBRDFs.pdf(wo, basePath.lastDG, incomingDirection, directLightingBRDFTypes) : 0.f;
+									float shiftedDRecPdf = ls.wi.pdf;
+									Color shiftedBsdfValue = baseBRDFs.eval(wo, basePath.lastDG, incomingDirection, directLightingBRDFTypes);
+									Color shiftedEmitterRadiance = mainEmitterRadiance;
+									float jacobian = 1.f;
+
+									// Power heuristic between light sample from base, BSDF sample from base, light sample from offset, BSDF sample from offset.
+									float shiftedWeightDenominator = (jacobian * shiftedPath.pdf) * (jacobian * shiftedPath.pdf) * ((shiftedDRecPdf * shiftedDRecPdf) + (shiftedBsdfPdf * shiftedBsdfPdf));
+									weight = mainWeightNumerator / (D_EPSILON + shiftedWeightDenominator + mainWeightDenominator);
+
+									mainContribution = basePath.throughput * (mainBSDFValue * mainEmitterRadiance);
+									shiftedContribution = jacobian * basePath.throughput * (shiftedBsdfValue * shiftedEmitterRadiance);
+
+									// Note: The Jacobians were baked into shifted.pdf and shifted.throughput at connection phase.
+								}
+								else {
+									/*
+									// Reconnect to the sampled light vertex. No shared vertices.
+									assert(shiftedPath.connectionState == PATH_NOT_CONNECTED);
+
+									const BSDF* shiftedBSDF = shifted.rRec.its.getBSDF(shifted.ray);
+
+									// This implementation uses light sampling only for the reconnect-shift.
+									// When one of the BSDFs is very glossy, light sampling essentially reduces to a failed shift anyway.
+									bool mainAtPointLight = false;// (dRec.measure == EDiscrete);
+
+									VertexType mainVertexType = getVertexType(basePath, *m_config, BSDF::ESmooth);
+									VertexType shiftedVertexType = getVertexType(shiftedPath, *m_config, BSDF::ESmooth);
+
+									if (mainAtPointLight || (mainVertexType == VERTEX_TYPE_DIFFUSE && shiftedVertexType == VERTEX_TYPE_DIFFUSE)) {
+										// Get emitter radiance.
+										DirectSamplingRecord shiftedDRec(shifted.rRec.its);
+										std::pair<Spectrum, bool> emitterTuple = m_scene->sampleEmitterDirectVisible(shiftedDRec, lightSample);
+										bool shiftedEmitterVisible = emitterTuple.second;
+
+										Spectrum shiftedEmitterRadiance = emitterTuple.first * shiftedDRec.pdf;
+										Float shiftedDRecPdf = shiftedDRec.pdf;
+
+										// Sample the BSDF.
+										Float shiftedDistanceSquared = (dRec.p - shifted.rRec.its.p).lengthSquared();
+										Vector emitterDirection = (dRec.p - shifted.rRec.its.p) / sqrt(shiftedDistanceSquared);
+										Float shiftedOpposingCosine = -dot(dRec.n, emitterDirection);
+
+										BSDFSamplingRecord bRec(shifted.rRec.its, shifted.rRec.its.toLocal(emitterDirection), ERadiance);
+
+										// Strict normals check, to make the output match with bidirectional methods when normal maps are present.
+										if (m_config->m_strictNormals && dot(shifted.rRec.its.geoFrame.n, emitterDirection) * Frame::cosTheta(bRec.wo) < 0) {
+											// Invalid, non-sampleable offset path.
+											shiftSuccessful = false;
+										}
+										else {
+											Spectrum shiftedBsdfValue = shiftedBSDF->eval(bRec);
+											Float shiftedBsdfPdf = (emitter->isOnSurface() && dRec.measure == ESolidAngle && shiftedEmitterVisible) ? shiftedBSDF->pdf(bRec) : 0;
+											Float jacobian = std::abs(shiftedOpposingCosine * mainDistanceSquared) / (Epsilon + std::abs(mainOpposingCosine * shiftedDistanceSquared));
+
+											// Power heuristic between light sample from base, BSDF sample from base, light sample from offset, BSDF sample from offset.
+											Float shiftedWeightDenominator = (jacobian * shifted.pdf) * (jacobian * shifted.pdf) * ((shiftedDRecPdf * shiftedDRecPdf) + (shiftedBsdfPdf * shiftedBsdfPdf));
+											weight = mainWeightNumerator / (D_EPSILON + shiftedWeightDenominator + mainWeightDenominator);
+
+											mainContribution = main.throughput * (mainBSDFValue * mainEmitterRadiance);
+											shiftedContribution = jacobian * shifted.throughput * (shiftedBsdfValue * shiftedEmitterRadiance);
+										}
+									*/
+									}
+									
+								}
+							}
+					}
+
 				}
 			}
 

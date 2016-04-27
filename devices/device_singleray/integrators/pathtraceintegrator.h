@@ -75,6 +75,7 @@ namespace embree
 		/* Configuration. */
 	private:
 		size_t maxDepth;               //!< Maximal recursion depth (1=primary ray only)
+		size_t rrDepth;					   /* Depth to begin using russian roulette */
 		float minContribution;         //!< Minimal contribution of a path to the pixel.
 		float epsilon;                 //!< Epsilon to avoid self intersections.
 		float tMaxShadowRay;			//!< Max length of a shadow ray (i.e. an actual ray used to test for occlusion, not just any secondary, aka "shadow", ray)

@@ -71,6 +71,7 @@ namespace embree
 			float eta = 1.f;					/*! Current refractive index of the ray */
 			bool alive = true;					/*! Whether the path matching the ray is still good. it's an invalid offset path with zero PDF and throughput. */
 			PathConnection connectionState = PATH_NOT_CONNECTED; 	/*! Whether the ray has been connected to the base path, or is in progress. */
+			bool backFacing = false;
 		};
 
 	public:
@@ -94,6 +95,8 @@ namespace embree
 			const Ref<BackendScene> &scene, IntegratorState &state);
 
 	private:
+		__forceinline VertexType getVertexTypeByRoughness(float roughness, float shiftThreshold) const;
+		__forceinline VertexType getVertexType(const CompositedBRDF &brdfs, const DifferentialGeometry &dg, float shiftThreshold, unsigned int bsdfType) const;
 		void evaluate(LightPath &basePath, LightPath *shiftedPaths, int shiftedCount, Color &outVeryDirect, const Ref<BackendScene>& scene, IntegratorState& state);
 
 			/* Configuration. */

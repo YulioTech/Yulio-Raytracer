@@ -22,6 +22,7 @@ namespace embree
 		: lightSampleID(-1), firstScatterSampleID(-1), firstScatterTypeSampleID(-1)
 	{
 		maxDepth = parms.getInt("maxDepth", 10);
+		rrDepth = parms.getInt("rrDepth", 5);
 		minContribution = parms.getFloat("minContribution", .02f);
 		epsilon = parms.getFloat("epsilon", 32.0f) * float(ulp);
 		tMaxShadowRay = parms.getFloat("tMaxShadowRay", std::numeric_limits<float>::infinity());
@@ -56,6 +57,7 @@ namespace embree
 #endif
 
 		Color L = zero;
+		float eta = 1.f; // Ray's relative refractive index (used by the Russian Roulette)
 
 		while (true) {
 			/*! Traverse ray. */
@@ -122,7 +124,6 @@ namespace embree
 					if (scene->allLights[i]->precompute())
 						ls = state.sample->getLightSample(precomputedLightSampleID[i]);
 					else
-						//ls.L = scene->allLights[i]->sample(dg, ls.wi, ls.tMax, state.sample->getVec2f(lightSampleID));
 						ls.L = scene->allLights[i]->sample(dg, ls, state.sample->getVec2f(lightSampleID));
 
 					/*! Ignore zero radiance or illumination from the back. */
@@ -153,16 +154,30 @@ namespace embree
 			// Stop if the next ray is going to exceed the max allowed depth
 			if (lightPath.depth >= maxDepth - 1) break;
 
+			if (lightPath.depth >= rrDepth - 1) {
+				/* Russian roulette: try to keep path weights equal to one,
+				while accounting for the solid angle compression at refractive
+				index boundaries. Stop with at least some probability to avoid
+				getting stuck (e.g. due to total internal reflection) */
+				const float q = min(reduce_max(lightPath.throughput) * eta * eta, .95f);
+
+				if (state.sample->getFloat(firstScatterTypeSampleID + lightPath.depth) >= q) {
+					break;
+				}
+			}
+
 			/*! Global illumination. Pick one BRDF component and sample it. */
 			{
 				/*! sample brdf */
-				Sample3f wi; BRDFType type;
+				Sample3f sample; BRDFType type;
 				const Vec2f s = state.sample->getVec2f(firstScatterSampleID + lightPath.depth);
 				const float ss = state.sample->getFloat(firstScatterTypeSampleID + lightPath.depth);
-				Color c = brdfs.sample(wo, dg, wi, type, s, ss, giBRDFTypes);
+				Color c = brdfs.sample(wo, dg, sample, type, s, ss, giBRDFTypes);
 
 				/*! Continue only if we hit something valid. */
-				if (c == Color(zero) || wi.pdf <= 0.0f) break;
+				if (c == Color(zero) || sample.pdf <= 0.f) break;
+
+				eta *= sample.eta;
 
 				/*! Compute simple volumetric effect. */
 				const Color& transmission = lightPath.lastMedium.transmission;
@@ -180,7 +195,10 @@ namespace embree
 					nextMedium = dg.material->nextMedium(lightPath.lastMedium);
 
 				/*! Continue the path. */
-				lightPath = lightPath.extended(Ray(dg.P, wi, dg.error*epsilon, inf, lightPath.lastRay.time), nextMedium, c, rcp(wi.pdf), (type & directLightingBRDFTypes) != NONE);
+				lightPath = lightPath.extended(
+					Ray(dg.P, sample, dg.error*epsilon, inf, lightPath.lastRay.time),
+					nextMedium, c, rcp(sample.pdf), (type & directLightingBRDFTypes) != NONE
+					);
 			}
 		} // while (lightPath.depth < maxDepth)
 

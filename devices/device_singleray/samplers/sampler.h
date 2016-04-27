@@ -30,7 +30,8 @@ namespace embree
 		ALIGNED_CLASS;
 	public:
 		Sample3f wi; //!< The direction towards the light source.
-		Vector3f p = zero; //!< Sampled position (if available)
+		Vector3f p = zero; //!< Sampled position on the surface of the emitter (if available)
+		Vector3f n = zero; //!< Sampled emitter surface normal (if applicable)
 		float tMax;  //!< The largest valid parameter value for a shadow ray.
 		Color L;     //!< The importance weighted radiance for this sample.
 	};

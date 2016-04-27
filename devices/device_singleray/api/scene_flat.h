@@ -117,21 +117,22 @@ namespace embree
 		};
 
 		/*! Construction of scene. */
-		BackendSceneFlat(const std::vector<Ref<Primitive> >& geometry, RTCScene scene)
+		BackendSceneFlat(const std::vector<Ref<Primitive>>& geometry, RTCScene scene)
 			: BackendScene(scene), geometry(geometry)
 		{
-			for (size_t i = 0; i < geometry.size(); i++) {
-				const Ref<Primitive>& prim = geometry[i];
-				if (prim && prim->light)
+			for (const auto &prim : geometry) {
+				if (!prim) continue;
+				if (prim->light) {
 					add(prim->light);
-				else
+				}
+				if (prim->shape) {
 					add(prim->shape);
+				}
 			}
 
 			for (auto &light : allLights) {
-				light->createShape(this);
+				light->createShape(*this);
 			}
-
 		}
 
 		/*! Helper to call the post intersector of the shape instance,

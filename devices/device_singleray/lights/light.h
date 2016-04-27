@@ -49,7 +49,7 @@ namespace embree
 		virtual Ref<Shape> shape() { return null; }
 
 		/*! Initializes the shape of the light. */
-		virtual Ref<Shape> createShape(const Ref<BackendScene> &scene) { return null; }
+		virtual Ref<Shape> createShape(const BackendScene &scene) { return null; }
 
 		/*! Evaluates the radiance that would arrive at a given location
 		 *  from a given direction assuming no blocking geometry. \returns

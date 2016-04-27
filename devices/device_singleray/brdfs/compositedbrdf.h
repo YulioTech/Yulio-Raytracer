@@ -76,6 +76,15 @@ namespace embree
 			return c;
 		}
 
+		/*! Get combined PDF for all BRDF components. */
+		float pdf(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi, BRDFType type) const
+		{
+			float pdf = 1.f;
+			for (size_t i = 0; i < size(); i++)
+				if (BRDFs[i]->type & type) pdf *= BRDFs[i]->pdf(wo, dg, wi);
+			return pdf;
+		}
+
 		/*! Determine if the composited BRDF contains a component of the specified type. */
 		bool has(const BRDFType &type) {
 

@@ -22,85 +22,85 @@
 
 namespace embree
 {
-  class RefCount
-  {
-  public:
-    RefCount(int val = 0) : refCounter(val) {}
-    virtual ~RefCount() {};
-  
-    virtual void refInc() { refCounter++; }
-    virtual void refDec() { if (--refCounter == 0) delete this; }
-  public:
-    Atomic refCounter;
-  };
-  
-  ////////////////////////////////////////////////////////////////////////////////
-  /// Reference to single object
-  ////////////////////////////////////////////////////////////////////////////////
+	class RefCount
+	{
+	public:
+		RefCount(int val = 0) : refCounter(val) {}
+		virtual ~RefCount() {};
 
-  template<typename Type>
-  class Ref {
-  public:
-    Type* const ptr;
+		virtual void refInc() { refCounter++; }
+		virtual void refDec() { if (--refCounter == 0) delete this; }
+	public:
+		Atomic refCounter;
+	};
 
-    ////////////////////////////////////////////////////////////////////////////////
-    /// Constructors, Assignment & Cast Operators
-    ////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////
+	/// Reference to single object
+	////////////////////////////////////////////////////////////////////////////////
 
-    __forceinline Ref( void ) : ptr(NULL) {}
-    __forceinline Ref(NullTy) : ptr(NULL) {}
-    __forceinline Ref( const Ref& input ) : ptr(input.ptr) { if ( ptr ) ptr->refInc(); }
+	template<typename Type>
+	class Ref {
+	public:
+		Type* const ptr;
 
-    __forceinline Ref( Type* const input ) : ptr(input) {
-      if ( ptr )
-        ptr->refInc();
-    }
+		////////////////////////////////////////////////////////////////////////////////
+		/// Constructors, Assignment & Cast Operators
+		////////////////////////////////////////////////////////////////////////////////
 
-    __forceinline ~Ref( void ) {
-      if (ptr) ptr->refDec();
-    }
+		__forceinline Ref(void) : ptr(NULL) {}
+		__forceinline Ref(NullTy) : ptr(NULL) {}
+		__forceinline Ref(const Ref& input) : ptr(input.ptr) { if (ptr) ptr->refInc(); }
 
-    __forceinline Ref& operator =( const Ref& input )
-    {
-      if ( input.ptr ) input.ptr->refInc();
-      if (ptr) ptr->refDec();
-      *(Type**)&ptr = input.ptr;
-      return *this;
-    }
+		__forceinline Ref(Type* const input) : ptr(input) {
+			if (ptr)
+				ptr->refInc();
+		}
 
-    __forceinline Ref& operator =( NullTy ) {
-      if (ptr) ptr->refDec();
-      *(Type**)&ptr = NULL;
-      return *this;
-    }
+		__forceinline ~Ref(void) {
+			if (ptr) ptr->refDec();
+		}
 
-    __forceinline operator bool( void ) const { return ptr != NULL; }
+		__forceinline Ref& operator =(const Ref& input)
+		{
+			if (input.ptr) input.ptr->refInc();
+			if (ptr) ptr->refDec();
+			*(Type**)&ptr = input.ptr;
+			return *this;
+		}
 
-    __forceinline const Type& operator  *( void ) const { return *ptr; }
-    __forceinline       Type& operator  *( void )       { return *ptr; }
-    __forceinline const Type* operator ->( void ) const { return  ptr; }
-    __forceinline       Type* operator ->( void )       { return  ptr; }
+		__forceinline Ref& operator =(NullTy) {
+			if (ptr) ptr->refDec();
+			*(Type**)&ptr = NULL;
+			return *this;
+		}
 
-    template<typename TypeOut>
-    __forceinline       Ref<TypeOut> cast()       { return Ref<TypeOut>(static_cast<TypeOut*>(ptr)); }
-    template<typename TypeOut>
-    __forceinline const Ref<TypeOut> cast() const { return Ref<TypeOut>(static_cast<TypeOut*>(ptr)); }
+		__forceinline operator bool(void) const { return ptr != NULL; }
 
-    template<typename TypeOut>
-    __forceinline       Ref<TypeOut> dynamicCast()       { return Ref<TypeOut>(dynamic_cast<TypeOut*>(ptr)); }
-    template<typename TypeOut>
-    __forceinline const Ref<TypeOut> dynamicCast() const { return Ref<TypeOut>(dynamic_cast<TypeOut*>(ptr)); }
-  };
+		__forceinline const Type& operator  *(void) const { return *ptr; }
+		__forceinline       Type& operator  *(void) { return *ptr; }
+		__forceinline const Type* operator ->(void) const { return  ptr; }
+		__forceinline       Type* operator ->(void) { return  ptr; }
 
-  template<typename Type> __forceinline  bool operator < ( const Ref<Type>& a, const Ref<Type>& b ) { return a.ptr <  b.ptr ; }
+		template<typename TypeOut>
+		__forceinline       Ref<TypeOut> cast() { return Ref<TypeOut>(static_cast<TypeOut*>(ptr)); }
+		template<typename TypeOut>
+		__forceinline const Ref<TypeOut> cast() const { return Ref<TypeOut>(static_cast<TypeOut*>(ptr)); }
 
-  template<typename Type> __forceinline  bool operator ==( const Ref<Type>& a, NullTy             ) { return a.ptr == NULL  ; }
-  template<typename Type> __forceinline  bool operator ==( NullTy            , const Ref<Type>& b ) { return NULL  == b.ptr ; }
-  template<typename Type> __forceinline  bool operator ==( const Ref<Type>& a, const Ref<Type>& b ) { return a.ptr == b.ptr ; }
+		template<typename TypeOut>
+		__forceinline       Ref<TypeOut> dynamicCast() { return Ref<TypeOut>(dynamic_cast<TypeOut*>(ptr)); }
+		template<typename TypeOut>
+		__forceinline const Ref<TypeOut> dynamicCast() const { return Ref<TypeOut>(dynamic_cast<TypeOut*>(ptr)); }
+	};
 
-  template<typename Type> __forceinline  bool operator !=( const Ref<Type>& a, NullTy             ) { return a.ptr != NULL  ; }
-  template<typename Type> __forceinline  bool operator !=( NullTy            , const Ref<Type>& b ) { return NULL  != b.ptr ; }
-  template<typename Type> __forceinline  bool operator !=( const Ref<Type>& a, const Ref<Type>& b ) { return a.ptr != b.ptr ; }
+	template<typename Type> __forceinline  bool operator < (const Ref<Type>& a, const Ref<Type>& b) { return a.ptr < b.ptr; }
+
+	template<typename Type> __forceinline  bool operator ==(const Ref<Type>& a, NullTy) { return a.ptr == NULL; }
+	template<typename Type> __forceinline  bool operator ==(NullTy, const Ref<Type>& b) { return NULL == b.ptr; }
+	template<typename Type> __forceinline  bool operator ==(const Ref<Type>& a, const Ref<Type>& b) { return a.ptr == b.ptr; }
+
+	template<typename Type> __forceinline  bool operator !=(const Ref<Type>& a, NullTy) { return a.ptr != NULL; }
+	template<typename Type> __forceinline  bool operator !=(NullTy, const Ref<Type>& b) { return NULL != b.ptr; }
+	template<typename Type> __forceinline  bool operator !=(const Ref<Type>& a, const Ref<Type>& b) { return a.ptr != b.ptr; }
 }
 
 #endif

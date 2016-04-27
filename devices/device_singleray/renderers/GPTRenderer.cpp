@@ -173,13 +173,13 @@ namespace embree
 			{
 				size_t y = tile_y + dy;
 				if (y >= swapchain->getHeight()) continue;
-
 				if (!swapchain->activeLine(y)) continue;
-				size_t _y = swapchain->raster2buffer(y);
+
+				const size_t _y = swapchain->raster2buffer(y);
 
 				for (size_t dx = 0; dx < TILE_SIZE; dx++)
 				{
-					size_t x = tile_x + dx;
+					const size_t x = tile_x + dx;
 					if (x >= swapchain->getWidth()) continue;
 
 					const int set = randomNumberGenerator.getInt(renderer->samplers->sampleSets);

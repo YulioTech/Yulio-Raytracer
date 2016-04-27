@@ -21,34 +21,35 @@
 
 namespace embree
 {
-  /*! Sample representation. A sample has a location and a probability
-   *  density it got sampled with. */
-  template<typename T> struct Sample
-  {
-    __forceinline Sample           () {}
-    __forceinline Sample           ( const Sample& other ) { value = other.value; pdf = other.pdf; }
-    __forceinline Sample& operator=( const Sample& other ) { value = other.value; pdf = other.pdf; return *this; }
+	/*! Sample representation. A sample has a location and a probability
+	 *  density it got sampled with. */
+	template<typename T> struct Sample
+	{
+		__forceinline Sample() {}
+		__forceinline Sample(const Sample& other) { value = other.value; pdf = other.pdf; }
+		__forceinline Sample& operator=(const Sample& other) { value = other.value; pdf = other.pdf; return *this; }
 
-    __forceinline Sample (const T& value, float pdf = one) : value(value), pdf(pdf) {}
+		__forceinline Sample(const T& value, float pdf = one) : value(value), pdf(pdf) {}
 
-    __forceinline operator const T&( ) const { return value; }
-    __forceinline operator       T&( )       { return value; }
+		__forceinline operator const T&() const { return value; }
+		__forceinline operator T&() { return value; }
 
-  public:
-    T value;    //!< location of the sample
-    float pdf;  //!< probability density of the sample
-  };
+	public:
+		T value;    //!< location of the sample
+		float pdf;  //!< probability density of the sample
+		float eta = 1.f; //!< Relative index of refraction in the sampled direction. At the moment, this comes into play (i.e. it'll be != 1.f) only when we sample specular transmissions
+	};
 
-  /*! output operator */
-  template<typename T> __forceinline std::ostream& operator<<(std::ostream& cout, const Sample<T>& s) {
-    return cout << "{ value = " << s.value << ", pdf = " << s.pdf << "}";
-  }
+	/*! output operator */
+	template<typename T> __forceinline std::ostream& operator<<(std::ostream& cout, const Sample<T>& s) {
+		return cout << "{ value = " << s.value << ", pdf = " << s.pdf << ", eta = " << s.eta << "}";
+	}
 
-  /*! shortcuts for common sample types */
-  typedef Sample<int>   Sample1i;
-  typedef Sample<float> Sample1f;
-  typedef Sample<Vec2f> Sample2f;
-  typedef Sample<Vector3f> Sample3f;
+	/*! shortcuts for common sample types */
+	typedef Sample<int>   Sample1i;
+	typedef Sample<float> Sample1f;
+	typedef Sample<Vec2f> Sample2f;
+	typedef Sample<Vector3f> Sample3f;
 }
 
 #endif
