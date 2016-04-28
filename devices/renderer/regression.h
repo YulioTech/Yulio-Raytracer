@@ -20,6 +20,6 @@
 
 namespace embree
 {
-  Handle<Device::RTScene> createRandomScene(Device *device, size_t numLights, size_t numObjects, size_t numTriangles);
+	Handle<Device::RTScene> createRandomScene(Device *device, size_t numLights, size_t numObjects, size_t numTriangles);
 }
 

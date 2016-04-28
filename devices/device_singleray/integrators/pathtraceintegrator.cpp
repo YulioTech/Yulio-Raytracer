@@ -154,17 +154,17 @@ namespace embree
 			// Stop if the next ray is going to exceed the max allowed depth
 			if (lightPath.depth >= maxDepth - 1) break;
 
-			if (lightPath.depth >= rrDepth - 1) {
-				/* Russian roulette: try to keep path weights equal to one,
-				while accounting for the solid angle compression at refractive
-				index boundaries. Stop with at least some probability to avoid
-				getting stuck (e.g. due to total internal reflection) */
-				const float q = min(reduce_max(lightPath.throughput) * eta * eta, .95f);
+			//if (lightPath.depth >= rrDepth - 1) {
+			//	/* Russian roulette: try to keep path weights equal to one,
+			//	while accounting for the solid angle compression at refractive
+			//	index boundaries. Stop with at least some probability to avoid
+			//	getting stuck (e.g. due to total internal reflection) */
+			//	const float q = min(reduce_max(lightPath.throughput) * eta * eta, .95f);
 
-				if (state.sample->getFloat(firstScatterTypeSampleID + lightPath.depth) >= q) {
-					break;
-				}
-			}
+			//	if (state.sample->getFloat(firstScatterTypeSampleID + lightPath.depth) >= q) {
+			//		break;
+			//	}
+			//}
 
 			/*! Global illumination. Pick one BRDF component and sample it. */
 			{

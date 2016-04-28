@@ -22,6 +22,11 @@
 #include "device/loaders/loaders.h"
 #include "glutdisplay.h"
 
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include "YulioRT.h" // Exported async DLL API definition 
+
 namespace embree
 {
 	//double upload_time = 0;
@@ -76,7 +81,7 @@ namespace embree
 	std::string g_workingDirectory = "";
 	std::string g_sceneFileName = "";
 	size_t g_num_frames = 1; // number of frames to render in output mode
-	size_t g_numThreads = 1; // 0 means auto-detect
+	size_t g_numThreads = 0;// 1; // 0 means auto-detect
 	size_t g_verbose_output = 0;
 
 	/* regression testing mode */
@@ -242,6 +247,7 @@ namespace embree
 	finish:
 		g_device->rtCommit(g_renderer);
 	}
+
 	static void displayMode()
 	{
 		if (!g_renderer) throw std::runtime_error("no renderer set");
@@ -272,7 +278,7 @@ namespace embree
 		g_rendered = true;
 	}
 
-	static std::string GetBasePath(const std::string &path) {
+	static std::string getBasePath(const std::string &path) {
 		auto pos = path.find_last_of("\\/");
 		return (std::string::npos == pos) ? "" : path.substr(0, pos + 1);
 	}
@@ -1179,8 +1185,80 @@ namespace embree
 
 		return(0);
 	}
-}
 
+	bool startAsyncRT() {
+		int  n = 0;
+		return true;
+	}
+
+	bool stopAsyncRT() {
+		return true;
+	}
+} // namespace embree
+
+namespace Yulio {
+
+	using namespace embree;
+
+	static ErrorCodeRT lastError;
+	static std::atomic<bool> stopFlag = false;
+	static std::atomic<bool> running = false;
+	static std::thread workerThread;
+
+	const char *errorStrings[] = {
+		"OK"
+	};
+
+	//struct ThreadContext{
+	//	std::atomic<bool> &stop;
+
+	//	ThreadContext(std::atomic<bool> &stop)
+	//		: stop(stop)
+	//	{}
+	//};
+
+	void workerThreadRT(/*const ThreadContext &ctx*/) {
+		while (!stopFlag) {
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+		}
+
+		stopFlag = false;
+		running = false;
+	}
+
+	DllApi bool StartRT(const char* colladaFile, const ParamsRT* params) {
+		if (!colladaFile) {
+			lastError = RT_MISSING_COLLADA;
+			return false;
+		}
+
+		//startAsyncRT();
+		running = true;
+
+		//ThreadContext ctx(stopFlag);
+		workerThread = std::thread(workerThreadRT/*, std::ref(ctx)*/);
+		//t.detach();
+
+
+		return RT_SUCCESS;
+	}
+
+	DllApi bool StopRT(bool keepResults) {
+		if (running) {
+			stopFlag = true;
+
+			// Wait for the thread to finish
+			workerThread.join();
+		}
+
+		return true;
+	}
+
+	DllApi ErrorCodeRT GetLastErrorRT() {
+		return lastError;
+	}
+
+}
 /******************************************************************************/
 /*                               Main Function                                */
 /******************************************************************************/

@@ -42,7 +42,6 @@ namespace embree
                              const Ref<ToneMapper>&   toneMapper, /*!< Tonemapper to use.          */
                              Ref<SwapChain>           film,  /*!< Framebuffer to render into. */
                              int accumulate) = 0;               /*!< Accumulation mode.          */
-    
   };
 }
 

@@ -545,10 +545,10 @@ namespace embree
 					Color mainEmitterRadiance = zero;
 
 					// Update the vertex types.
-					const VertexType mainVertexType = getVertexType(baseBRDFs, basePath.lastDG, shiftThreshold, brdfTypeToTest);
-					VertexType mainNextVertexType;
+					//const VertexType mainVertexType = getVertexType(baseBRDFs, basePath.lastDG, shiftThreshold, brdfTypeToTest);
+					//VertexType mainNextVertexType;
 
-					main.ray = Ray(main.rRec.its.p, mainWo, main.ray.time);
+					//main.ray = Ray(main.rRec.its.p, mainWo, main.ray.time);
 
 				}
 			}
