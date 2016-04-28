@@ -90,6 +90,15 @@ namespace embree {
 
         }
 
+		/*!
+		* For rough BRDFs: return the root mean square
+		* surface roughness of the given BRDF component
+		*
+		* An infinite value indicates a component that is ideally diffuse */
+		virtual float roughness(const DifferentialGeometry &dg)     /*! shade location on a surface       */ const {
+			return std::numeric_limits<float>::infinity();
+		}
+
         /*! BRDF type hint to the integrator */
         BRDFType type;
 

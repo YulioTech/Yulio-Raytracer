@@ -15,6 +15,7 @@ namespace embree
 		epsilon = parms.getFloat("epsilon", 32.f) * float(ulp);
 		tMaxShadowRay = parms.getFloat("tMaxShadowRay", std::numeric_limits<float>::infinity());
 		backplate = parms.getImage("backplate");
+		shiftThreshold = parms.getFloat("shiftThreshold", .001f);
 	}
 
 	void GPTIntegrator::requestSamples(Ref<SamplerFactory>& samplerFactory, const Ref<BackendScene>& scene)
@@ -189,40 +190,40 @@ namespace embree
 	///
 	/// For this reason, we vary the classification a little bit based on the situation.
 	/// This is perfectly valid, and should be done.
-	GPTIntegrator::VertexType GPTIntegrator::getVertexType(const CompositedBRDF &brdfs, const DifferentialGeometry &dg, float shiftThreshold, unsigned int bsdfType) const {
+	GPTIntegrator::VertexType GPTIntegrator::getVertexType(const CompositedBRDF &brdfs, const DifferentialGeometry &dg, float shiftThreshold, BRDFType bsdfType) const {
 		// Return the lowest roughness value of the components of the vertex's BSDF.
 		// If 'bsdfType' does not have a delta component, do not take perfect speculars (zero roughness) into account in this.
 
-		float lowest_roughness = std::numeric_limits<float>::infinity();
+		float lowestRoughness = std::numeric_limits<float>::infinity();
 
-		bool found_smooth = false;
-		bool found_dirac = false;
-		for (int i = 0, component_count = brdfs.size(); i < component_count; ++i) {
+		bool foundSmooth = false;
+		bool foundDirac = false;
+		for (int i = 0, componentCount = brdfs.size(); i < componentCount; ++i) {
 			auto brdf = brdfs[i];
-			const float component_roughness = std::numeric_limits<Float>::infinity();// brdf->getRoughness(its, i);
+			const float componentRoughness = brdf->roughness(dg);
 
-			if (component_roughness == 0.f) {
-				found_dirac = true;
-				if (!(bsdfType & BSDF::EDelta)) {
+			if (componentRoughness == 0.f) {
+				foundDirac = true;
+				if (!(bsdfType & SPECULAR)) {
 					// Skip Dirac components if a smooth component is requested.
 					continue;
 				}
 			}
 			else {
-				found_smooth = true;
+				foundSmooth = true;
 			}
 
-			if (component_roughness < lowest_roughness) {
-				lowest_roughness = component_roughness;
+			if (componentRoughness < lowestRoughness) {
+				lowestRoughness = componentRoughness;
 			}
 		}
 
 		// Roughness has to be zero also if there is a delta component but no smooth components.
-		if (!found_smooth && found_dirac && !(bsdfType & BSDF::EDelta)) {
-			lowest_roughness = 0.f;
+		if (!foundSmooth && foundDirac && !(bsdfType & SPECULAR)) {
+			lowestRoughness = 0.f;
 		}
 
-		return getVertexTypeByRoughness(lowest_roughness, shiftThreshold);
+		return getVertexTypeByRoughness(lowestRoughness, shiftThreshold);
 	}
 
 	void GPTIntegrator::evaluate(LightPath &basePath, LightPath *shiftedPaths, int shiftedCount, Color &outVeryDirect, const Ref<BackendScene> &scene, IntegratorState &state)
@@ -423,20 +424,23 @@ namespace embree
 									// Note: The Jacobians were baked into shifted.pdf and shifted.throughput at connection phase.
 								}
 								else {
-									/*
 									// Reconnect to the sampled light vertex. No shared vertices.
 									assert(shiftedPath.connectionState == PATH_NOT_CONNECTED);
 
-									const BSDF* shiftedBSDF = shifted.rRec.its.getBSDF(shifted.ray);
+									CompositedBRDF shiftedBRDFs;
+									if (shiftedPath.lastDG.material)
+										shiftedPath.lastDG.material->shade(shiftedPath.lastRay, shiftedPath.lastMedium, shiftedPath.lastDG, shiftedBRDFs);
 
 									// This implementation uses light sampling only for the reconnect-shift.
 									// When one of the BSDFs is very glossy, light sampling essentially reduces to a failed shift anyway.
 									bool mainAtPointLight = false;// (dRec.measure == EDiscrete);
 
-									VertexType mainVertexType = getVertexType(basePath, *m_config, BSDF::ESmooth);
-									VertexType shiftedVertexType = getVertexType(shiftedPath, *m_config, BSDF::ESmooth);
+									const auto brdfTypeToTest = (BRDFType)(DIFFUSE | GLOSSY);
+									const VertexType mainVertexType = getVertexType(baseBRDFs, basePath.lastDG, shiftThreshold, brdfTypeToTest);
+									const VertexType shiftedVertexType = getVertexType(shiftedBRDFs, shiftedPath.lastDG, shiftThreshold, brdfTypeToTest);
 
 									if (mainAtPointLight || (mainVertexType == VERTEX_TYPE_DIFFUSE && shiftedVertexType == VERTEX_TYPE_DIFFUSE)) {
+										/*
 										// Get emitter radiance.
 										DirectSamplingRecord shiftedDRec(shifted.rRec.its);
 										std::pair<Spectrum, bool> emitterTuple = m_scene->sampleEmitterDirectVisible(shiftedDRec, lightSample);
@@ -469,15 +473,33 @@ namespace embree
 											mainContribution = main.throughput * (mainBSDFValue * mainEmitterRadiance);
 											shiftedContribution = jacobian * shifted.throughput * (shiftedBsdfValue * shiftedEmitterRadiance);
 										}
-									*/
+										*/
 									}
-									
 								}
-							}
-					}
+							} // if (shiftSuccessful) 
 
-				}
-			}
+							if (!shiftSuccessful) {
+								// The offset path cannot be generated; Set offset PDF and offset throughput to zero. This is what remains.
+
+								// Power heuristic between light sample from base, BSDF sample from base, light sample from offset, BSDF sample from offset. (Offset path has zero PDF)
+								float shiftedWeightDenominator = 0.f;
+								weight = mainWeightNumerator / (D_EPSILON + mainWeightDenominator);
+
+								mainContribution = basePath.throughput * (mainBSDFValue * mainEmitterRadiance);
+								shiftedContribution = Color(0.f);
+							}
+
+							// Note: Using also the offset paths for the throughput estimate, like we do here, provides some advantage when a large reconstruction alpha is used,
+							// but using only throughputs of the base paths doesn't usually lose by much.
+							basePath.addRadiance(mainContribution, weight);
+							shiftedPath.addRadiance(shiftedContribution, weight);
+
+							shiftedPath.addGradient(shiftedContribution - mainContribution, weight);
+
+						} // for (int i = 0; i < shiftedCount; ++i)
+					} // Stuff from Mitsuba "translated" into our framework
+				} // for (size_t i = 0; i < scene->allLights.size(); i++)
+			} // if (useDirectLighting)
 
 			// Stop if the next ray is going to exceed the max allowed depth
 			if (basePath.depth >= maxDepth - 1) break;
@@ -485,22 +507,23 @@ namespace embree
 			/*! Global illumination. Pick one BRDF component and sample it. */
 			{
 				/*! sample brdf */
-				Sample3f wi; BRDFType type;
+				Sample3f sample; BRDFType type;
 				const Vec2f s = state.sample->getVec2f(firstScatterSampleID + basePath.depth);
 				const float ss = state.sample->getFloat(firstScatterTypeSampleID + basePath.depth);
-				Color c = baseBRDFs.sample(wo, basePath.lastDG, wi, type, s, ss, giBRDFTypes);
+				Color brdfWeight = baseBRDFs.sample(wo, basePath.lastDG, sample, type, s, ss, giBRDFTypes);
 
 				/*! Continue only if we hit something valid. */
-				if (c == Color(zero) || wi.pdf <= 0.0f) break;
+				// If PDF <= 0, impossible base path.
+				if (brdfWeight == Color(zero) || sample.pdf <= 0.0f) break;
 
 				/*! Compute simple volumetric effect. */
 				const Color& transmission = basePath.lastMedium.transmission;
 				if (transmission != Color(one)) {
-					c *= pow(transmission, basePath.lastRay.tfar);
+					brdfWeight *= pow(transmission, basePath.lastRay.tfar);
 				}
 
 				/*! Terminate path if the contribution is too low. */
-				if (reduce_max(basePath.throughput * c) < minContribution)
+				if (reduce_max(basePath.throughput * brdfWeight) < minContribution)
 					break;
 
 				/*! Tracking medium if we hit a medium interface. */
@@ -509,7 +532,25 @@ namespace embree
 					nextMedium = basePath.lastDG.material->nextMedium(basePath.lastMedium);
 
 				/*! Continue the path. */
-				basePath = basePath.extended(Ray(basePath.lastDG.P, wi, basePath.lastDG.error*epsilon, inf, basePath.lastRay.time), nextMedium, c, rcp(wi.pdf), (type & directLightingBRDFTypes) != NONE);
+				basePath = basePath.extended(Ray(basePath.lastDG.P, sample, basePath.lastDG.error*epsilon, inf, basePath.lastRay.time), nextMedium, brdfWeight, rcp(sample.pdf), (type & directLightingBRDFTypes) != NONE);
+
+				// Stuff from Mitsuba "translated" into our framework
+				{
+					 basePath.lastDG;
+					// The old intersection structure is still needed after main.rRec.its gets updated.
+					 const DifferentialGeometry previousBaseDG = basePath.lastDG;
+
+					// Trace a ray in the sampled direction.
+					bool mainHitEmitter = false;
+					Color mainEmitterRadiance = zero;
+
+					// Update the vertex types.
+					const VertexType mainVertexType = getVertexType(baseBRDFs, basePath.lastDG, shiftThreshold, brdfTypeToTest);
+					VertexType mainNextVertexType;
+
+					main.ray = Ray(main.rRec.its.p, mainWo, main.ray.time);
+
+				}
 			}
 		} // while (lightPath.depth < maxDepth)
 	}

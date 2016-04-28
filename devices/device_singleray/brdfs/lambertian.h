@@ -21,7 +21,7 @@
 
 namespace embree
 {
-	/*! Lambertian BRDF. A lambertian surface is a surface that reflects
+	/*! Lambertian BRDF. A Lambertian surface is a surface that reflects
 	 *  the same intensity independent of the viewing direction. The
 	 *  BRDF has a reflectivity parameter that determines the color of
 	 *  the surface. */
@@ -44,6 +44,10 @@ namespace embree
 			return cosineSampleHemispherePDF(wi, dg.Ns);
 		}
 
+		float getRoughness(const DifferentialGeometry &dg) const {
+			return std::numeric_limits<float>::infinity();
+		}
+
 	private:
 
 		/*! The reflectivity parameter. The vale 0 means no reflection,
@@ -51,7 +55,7 @@ namespace embree
 		Color R;
 	};
 
-	/*! Lambertian BRDF. A lambertian surface is a surface that reflects
+	/*! Lambertian BRDF. A Lambertian surface is a surface that reflects
 	 *  the same intensity independent of the viewing direction. The
 	 *  BRDF has a reflectivity parameter that determines the color of
 	 *  the surface. */
@@ -75,6 +79,10 @@ namespace embree
 			return cosineSampleHemispherePDF(wi, -N);
 		}
 
+		float getRoughness(const DifferentialGeometry &dg) const {
+			return std::numeric_limits<float>::infinity();
+		}
+
 	private:
 
 		Vector3f N;
@@ -84,7 +92,7 @@ namespace embree
 		Color T;
 	};
 
-	/*! Lambertian BRDF. A lambertian surface is a surface that reflects
+	/*! Lambertian BRDF. A Lambertian surface is a surface that reflects
 	 *  the same intensity independent of the viewing direction. The
 	 *  BRDF has a reflectivity parameter that determines the color of
 	 *  the surface. */

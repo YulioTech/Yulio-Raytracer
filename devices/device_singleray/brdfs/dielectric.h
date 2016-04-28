@@ -46,7 +46,11 @@ namespace embree
 		}
 
 		float pdf(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
-			return zero;
+			return 0.f;
+		}
+
+		float getRoughness(const DifferentialGeometry &dg) const {
+			return 0.f;
 		}
 
 	private:
@@ -82,6 +86,10 @@ namespace embree
 
 		float pdf(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
 			return zero;
+		}
+
+		float getRoughness(const DifferentialGeometry &dg) const {
+			return 0.f;
 		}
 
 	private:
@@ -122,7 +130,11 @@ namespace embree
 		}
 
 		float pdf(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
-			return zero;
+			return 0.f;
+		}
+
+		float getRoughness(const DifferentialGeometry &dg) const {
+			return 0.f;
 		}
 
 	private:
@@ -162,7 +174,11 @@ namespace embree
 		}
 
 		float pdf(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
-			return zero;
+			return 0.f;
+		}
+
+		float getRoughness(const DifferentialGeometry &dg) const {
+			return 0.f;
 		}
 
 	private:

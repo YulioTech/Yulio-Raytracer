@@ -96,7 +96,7 @@ namespace embree
 
 	private:
 		__forceinline VertexType getVertexTypeByRoughness(float roughness, float shiftThreshold) const;
-		__forceinline VertexType getVertexType(const CompositedBRDF &brdfs, const DifferentialGeometry &dg, float shiftThreshold, unsigned int bsdfType) const;
+		__forceinline VertexType getVertexType(const CompositedBRDF &brdfs, const DifferentialGeometry &dg, float shiftThreshold, BRDFType bsdfType) const;
 		void evaluate(LightPath &basePath, LightPath *shiftedPaths, int shiftedCount, Color &outVeryDirect, const Ref<BackendScene>& scene, IntegratorState& state);
 
 			/* Configuration. */
@@ -106,6 +106,7 @@ namespace embree
 		float epsilon;                 //!< Epsilon to avoid self intersections.
 		float tMaxShadowRay;			//!< Max length of a shadow ray (i.e. an actual ray used to test for occlusion, not just any secondary, aka "shadow", ray)
 		Ref<Image> backplate;          //!< High resolution background.
+		float shiftThreshold;			//!< Threshold value below which a BRDF at a currently evaluated vertex is considered Glossy (otherwise its' considered Diffuse)
 
 		/*! Random variables. */
 	private:
