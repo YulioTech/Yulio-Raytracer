@@ -132,7 +132,7 @@ namespace embree
 	Ref<Image> loadFreeImage(const FileName& fileName);
 
 	/*! Store image to ANY supported graphics file. */
-	bool storeFreeImage(const Ref<Image>& image, const FileName& fileName, int quality = 80);
+	bool storeFreeImage(const Ref<Image>& image, const FileName& fileName, int quality = 90);
 
 	/*! Loads image from PNG file. */
   //Ref<Image> loadPNG(const FileName& fileName);
@@ -147,10 +147,10 @@ namespace embree
 	void storeExr(const Ref<Image>& img, const FileName& fileName);
 
 	/*! Store image to file. Format is auto detected. */
-	void storeImage(const Ref<Image>& image, const FileName& filename);
+	void storeImage(const Ref<Image>& image, const FileName& filename, int quality = 90);
 
 	/*! Store image to JPEG file. */
-	void storeJPEG(const Ref<Image>& img, const FileName& fileName, int quality = 80);
+	void storeJPEG(const Ref<Image>& img, const FileName& fileName, int quality = 90);
 
 	/*! Store image to file using ImageMagick. */
 	void storeMagick(const Ref<Image>& img, const FileName& fileName);

@@ -52,10 +52,16 @@ namespace embree
 		showProgress = parms.getInt("showprogress", 0);
 	}
 
+	void GPTRenderer::stopRendering() {
+		if (renderJob) {
+			int n = 0;
+		}
+	}
+
 	void GPTRenderer::renderFrame(const Ref<Camera>& camera, const Ref<BackendScene>& scene, const Ref<ToneMapper>& toneMapper, Ref<SwapChain> swapchain, int accumulate)
 	{
 		if (accumulate == 0) iteration = 0;
-		new RenderJob(this, camera, scene, toneMapper, swapchain, accumulate, iteration);
+		renderJob = new RenderJob(this, camera, scene, toneMapper, swapchain, accumulate, iteration);
 		iteration++;
 
 #if defined(RECONSTRUCT)

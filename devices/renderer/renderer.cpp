@@ -83,6 +83,7 @@ namespace embree
 	size_t g_num_frames = 1; // number of frames to render in output mode
 	size_t g_numThreads = 0;// 1; // 0 means auto-detect
 	size_t g_verbose_output = 0;
+	int g_jpegQuality = 90;
 
 	/* regression testing mode */
 	bool g_regression = false;
@@ -396,7 +397,7 @@ namespace embree
 
 						// Store the cube face image to disk if needed (for debugging purposes)
 						if (g_debugging) {
-							storeImage(image, cubeFaceFileName);
+							storeImage(image, cubeFaceFileName, g_jpegQuality);
 						}
 					}
 
@@ -457,7 +458,7 @@ namespace embree
 						// Store the final image
 						{
 							const auto finalFileName = std::string(fileName.path()) + "\\" + fileName.name() + "_" + cameraName + "." + "jpg"; // fileName.ext();
-							storeImage(finalImage, finalFileName);
+							storeImage(finalImage, finalFileName, g_jpegQuality);
 
 							std::cout << "Generated stereoscopic cube map #" << (cameraIndex + 1) << " in file " << finalFileName << std::endl << std::endl;
 						}
@@ -537,7 +538,7 @@ namespace embree
 
 						// Store the cube face image to disk if needed (for debugging purposes)
 						if (g_debugging) {
-							storeImage(image, cubeFaceFileName);
+							storeImage(image, cubeFaceFileName, g_jpegQuality);
 						}
 					}
 				}
@@ -598,7 +599,7 @@ namespace embree
 						}
 					}
 
-					storeImage(finalImage, fileName);
+					storeImage(finalImage, fileName, g_jpegQuality);
 				}
 			}
 
@@ -623,7 +624,7 @@ namespace embree
 			else if (g_format == "RGB_FLOAT32")  image = new Image3f(g_width, g_height, (Col3f*)ptr);
 			else if (g_format == "RGBA_FLOAT32")  image = new Image4f(g_width, g_height, (Col4f*)ptr);
 			else throw std::runtime_error("unsupported framebuffer format: " + g_format);
-			storeImage(image, fileName);
+			storeImage(image, fileName, g_jpegQuality);
 			g_device->rtUnmapFrameBuffer(g_frameBuffer);
 			g_rendered = true;
 		}
@@ -895,6 +896,11 @@ namespace embree
 				g_frameBuffer = g_device->rtNewFrameBuffer(g_format.c_str(), g_width, g_height, g_numBuffers);
 			}
 
+			/* JPEG compression quality (1-100 range) */
+			else if (tag == "-jpegQuality") {
+				g_jpegQuality = cin->getInt();
+			}
+
 			/* set framebuffer format */
 			else if (tag == "-framebuffer" || tag == "-fb") {
 				g_format = cin->getString();
@@ -930,8 +936,7 @@ namespace embree
 			{
 				const auto renderer = cin->getString();
 				if (renderer == "debug") parseDebugRenderer(cin, path);
-				else if (renderer == "pt") parsePathTracer(cin, path);
-				else if (renderer == "pathtracer") parsePathTracer(cin, path);
+				else if (renderer == "pt" || renderer == "pathtracer") parsePathTracer(cin, path);
 				else if (renderer == "gpt") parseGPT(cin, path);
 				else throw std::runtime_error("(when parsing -renderer) : unknown renderer: " + renderer);
 			}
@@ -1186,40 +1191,105 @@ namespace embree
 		return(0);
 	}
 
-	bool startAsyncRT() {
-		int  n = 0;
-		return true;
-	}
-
-	bool stopAsyncRT() {
-		return true;
-	}
 } // namespace embree
 
 namespace Yulio {
 
 	using namespace embree;
+	using namespace std;
 
 	static ErrorCodeRT lastError;
-	static std::atomic<bool> stopFlag = false;
-	static std::atomic<bool> running = false;
-	static std::thread workerThread;
+	static atomic<bool> stopFlag = false;
+	static atomic<bool> running = false;
+	static thread workerThread;
 
 	const char *errorStrings[] = {
 		"OK"
 	};
 
-	//struct ThreadContext{
-	//	std::atomic<bool> &stop;
 
-	//	ThreadContext(std::atomic<bool> &stop)
-	//		: stop(stop)
-	//	{}
-	//};
-
-	void workerThreadRT(/*const ThreadContext &ctx*/) {
+	void workerThreadRT(const string &file, const ParamsRT *params) {
 		while (!stopFlag) {
-			std::this_thread::sleep_for(std::chrono::seconds(1));
+			const FileName colladaFile = file;
+			// Lev: special handling for the purposes of FPR rendering and Collada processing
+			const auto extension = colladaFile.ext();
+			if (extension != "dae") {
+				lastError = RT_MISSING_COLLADA_FILE;
+				break;
+			}
+
+			g_sceneFileName = colladaFile;
+			g_workingDirectory = FileName(colladaFile).path();
+			g_processingFprCollada = true;
+
+			/*! create stream for parsing */
+			std::vector<std::string> argv = { "dummy_param" };
+			if (params) {
+				// stereo (HAS to be present)
+				{ argv.push_back("-stereo"); }
+				// renderer (i.e the integrator type)
+				{ argv.push_back("-renderer"); argv.push_back(params->renderer ? params->renderer : "pathtracer"); }
+				// spp
+				{ argv.push_back("-spp"); argv.push_back(to_string(params->spp)); }
+				// size
+				{ argv.push_back("-size"); argv.push_back(to_string(params->size)); argv.push_back(to_string(params->size)); }
+				// depth
+				{ argv.push_back("-depth"); argv.push_back(to_string(params->depth)); }
+				// jpegQuality
+				{ argv.push_back("-jpegQuality"); argv.push_back(to_string(params->jpegQuality)); }
+				// tMaxShadowRay
+				{ argv.push_back("-tMaxShadowRay"); argv.push_back(to_string(params->tMaxShadowRay)); }
+				// ambientlight
+				{ argv.push_back("-ambientlight"); argv.push_back(to_string(params->ambientlight[0]));  argv.push_back(to_string(params->ambientlight[1]));  argv.push_back(to_string(params->ambientlight[2])); }
+				// eyeSeparation
+				{ argv.push_back("-eyeSeparation"); argv.push_back(to_string(params->eyeSeparation)); }
+				// toeIn
+				{ if (params->toeIn) argv.push_back("-toeIn"); }
+				// eyeSeparation
+				{ argv.push_back("-zeroParallax"); argv.push_back(to_string(params->zeroParallax)); }
+				// debug
+				{ if (params->debug) argv.push_back("-debug"); }
+			}
+			Ref<ParseStream> stream = new ParseStream(new CommandLineStream(argv));
+
+			/*! parse device to use */
+			parseNumThreads(stream);
+			parseDevice(stream);
+
+			/*! create embree device */
+			if (!g_device) {
+				g_device = Device::rtCreateDevice("default", g_numThreads, g_rtcore_cfg.c_str());
+			}
+
+			createGlobalObjects();
+
+			vector<Handle<Device::RTPrimitive>> prims = rtLoadScene(g_sceneFileName, &g_stereoCubeCameras);
+			g_prims.insert(g_prims.end(), prims.begin(), prims.end());
+
+			if (!g_stereoCubeCameras.size()) {
+				lastError = RT_INVALID_COLLADA_FORMAT;
+				break;
+			}
+			
+			g_device->rtGetFloat1(g_stereoCubeCameras[0], "sceneScale", g_sceneScale);
+
+			/*! parse command line */
+			parseCommandLine(stream, g_workingDirectory);
+
+			//upload_time = getSeconds();
+			//PRINT(upload_time);
+
+			/*! if we did no render yet but have loaded a scene, switch to display mode */
+			if (//g_rendered ||
+				!g_prims.size()) {
+				lastError = RT_INVALID_COLLADA_FORMAT;
+				break;
+			}
+		
+			outputMode(g_outFileName);
+
+			/*! cleanup */
+			clearGlobalObjects();
 		}
 
 		stopFlag = false;
@@ -1228,15 +1298,13 @@ namespace Yulio {
 
 	DllApi bool StartRT(const char* colladaFile, const ParamsRT* params) {
 		if (!colladaFile) {
-			lastError = RT_MISSING_COLLADA;
+			lastError = RT_MISSING_COLLADA_FILE;
 			return false;
 		}
 
 		//startAsyncRT();
 		running = true;
-
-		//ThreadContext ctx(stopFlag);
-		workerThread = std::thread(workerThreadRT/*, std::ref(ctx)*/);
+		workerThread = std::thread(workerThreadRT, string(colladaFile), params);
 		//t.detach();
 
 

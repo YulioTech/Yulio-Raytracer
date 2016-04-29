@@ -23,7 +23,8 @@ namespace embree
 
 		/*! Renders a single frame. */
 		void renderFrame(const Ref<Camera>& camera, const Ref<BackendScene>& scene, const Ref<ToneMapper>& toneMapper, Ref<SwapChain> film, int accumulate);
-
+		/*! Forcefully stop rendering (if early termination is needed). */
+		void stopRendering();
 	private:
 
 		class RenderJob
@@ -34,7 +35,7 @@ namespace embree
 
 		private:
 
-			/*! start functon */
+			/*! start function */
 			TASK_RUN_FUNCTION(RenderJob, renderTile);
 
 			/*! finish function */
@@ -86,5 +87,6 @@ namespace embree
 	private:
 		int iteration;
 		bool showProgress;             //!< Set to true if user wants rendering progress shown
+		RenderJob *renderJob = nullptr;
 	};
 }

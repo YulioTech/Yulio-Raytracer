@@ -69,7 +69,7 @@ namespace embree
 	}
 
 	/*! stores an image to file with auto-detection of format */
-	void storeImage(const Ref<Image>& img, const FileName& fileName) try
+	void storeImage(const Ref<Image>& img, const FileName& fileName, int quality) try
 	{
 		std::string ext = strlwr(fileName.ext());
 #ifdef USE_OPENEXR
@@ -86,7 +86,7 @@ namespace embree
 		if (ext == "png") { storeDevIL(img, fileName);  return; }
 #endif
 #ifdef USE_LIBJPEG
-		if (ext == "jpg") { storeJPEG(img, fileName);  return; }
+		if (ext == "jpg") { storeJPEG(img, fileName, quality);  return; }
 #endif
 		if (ext == "png") { storePNG(img, fileName);  return; }
 		if (ext == "pfm") { storePFM(img, fileName);  return; }
@@ -94,7 +94,7 @@ namespace embree
 		if (ext == "tga") { storeTga(img, fileName);  return; }
 
 		// As a last resort, try FreeImage - a universal image saver
-		if (!storeFreeImage(img, fileName))
+		if (!storeFreeImage(img, fileName, quality))
 			throw std::runtime_error("image format " + ext + " not supported");
 	}
 	catch (const std::exception& e) {

@@ -38,6 +38,8 @@ namespace embree
     /*! Renders a single frame. */
     void renderFrame(const Ref<Camera>& camera, const Ref<BackendScene>& scene, const Ref<ToneMapper>& toneMapper, Ref<SwapChain> film, int accumulate);
 
+	void stopRendering() {};
+
   private:
 
     class RenderJob

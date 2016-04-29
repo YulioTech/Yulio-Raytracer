@@ -12,7 +12,11 @@ using namespace Yulio;
 int main()
 {
 	ParamsRT params;
-	if (!StartRT("Test.dae", &params)) {
+	params.size = 1536;
+	params.spp = 64;
+	params.jpegQuality = 90;
+	params.debug = false;
+	if (!StartRT("../../models/Kia.dae", &params)) {
 		auto error = GetLastErrorRT();
 	}
 

@@ -95,9 +95,9 @@ namespace embree
 			return bSuccess;
 
 		RGBQUAD color;
-		for (size_t y = 0, i = 0; y < image->height; y++) {
+		for (size_t y = 0, yFlip = image->height - 1, i = 0; y < image->height; y++, yFlip--) {
 			for (size_t x = 0; x < image->width; x++) {
-				const Color4 pixel = image->get(x, y);
+				const Color4 pixel = image->get(x, yFlip); // Flip the image vertically
 				color.rgbRed = (unsigned char)(clamp(pixel.r) * 255.f);
 				color.rgbGreen = (unsigned char)(clamp(pixel.g) * 255.f);
 				color.rgbBlue = (unsigned char)(clamp(pixel.b) * 255.f);
