@@ -22,47 +22,47 @@
 
 namespace embree
 {
-  /*! system mutex */
-  class MutexSys {
-    friend class ConditionSys;
-  public:
+	/*! system mutex */
+	class MutexSys {
+		friend class ConditionSys;
+	public:
 
-    MutexSys( void );
-    ~MutexSys( void );
+		MutexSys(void);
+		~MutexSys(void);
 
-    void lock( void );
-    void unlock( void );
+		void lock(void);
+		void unlock(void);
 
-  protected:
-    void* mutex;
+	protected:
+		void* mutex;
 
-    MutexSys( const MutexSys& );             // don't implement
-    MutexSys& operator =( const MutexSys& ); // don't implement
-  };
+		MutexSys(const MutexSys&);             // don't implement
+		MutexSys& operator =(const MutexSys&); // don't implement
+	};
 
-  /*! spinning mutex */
-  class MutexActive {
-  public:
-    __forceinline MutexActive( void ) : flag(0) {}
-    void lock  ( void );
-    void unlock( void );
-  protected:
-    Atomic flag;
+	/*! spinning mutex */
+	class MutexActive {
+	public:
+		__forceinline MutexActive(void) : flag(0) {}
+		void lock(void);
+		void unlock(void);
+	protected:
+		Atomic flag;
 
-    MutexActive( const MutexActive& );             // don't implement
-    MutexActive& operator =( const MutexActive& ); // don't implement
-  };
+		MutexActive(const MutexActive&);             // don't implement
+		MutexActive& operator =(const MutexActive&); // don't implement
+	};
 
-  /*! safe mutex lock and unlock helper */
-  template<typename Mutex> class Lock {
-  public:
-    Lock (Mutex& mutex) : mutex(mutex) { mutex.lock(); }
-    ~Lock() { mutex.unlock(); }
-  protected:
-    Mutex& mutex;
-    Lock( const Lock& );             // don't implement
-    Lock& operator =( const Lock& ); // don't implement
-  };
+	/*! safe mutex lock and unlock helper */
+	template<typename Mutex> class Lock {
+	public:
+		Lock(Mutex& mutex) : mutex(mutex) { mutex.lock(); }
+		~Lock() { mutex.unlock(); }
+	protected:
+		Mutex& mutex;
+		Lock(const Lock&);             // don't implement
+		Lock& operator =(const Lock&); // don't implement
+	};
 }
 
 #endif

@@ -34,6 +34,8 @@ namespace embree
 			//}
 		}
 
+		~Uber() {}
+
 		void shade(const Ray& ray, const Medium& currentMedium, const DifferentialGeometry& dg, CompositedBRDF& brdfs) const {
 			//Color4 diffuseColor(1.f, 0.f, 0.f, .5f);
 			Color4 diffuseColor(diffuse.r, diffuse.g, diffuse.b, 1.f);

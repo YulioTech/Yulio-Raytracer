@@ -99,6 +99,7 @@ namespace embree {
 	}
 
 	DAELoader::~DAELoader() {
+		materialMap.clear();
 	}
 
 	void DAELoader::getNodeBBox(
@@ -297,14 +298,14 @@ namespace embree {
 			//	}
 			//}
 
+			bool cullBackFaces = true;
+			bool render = true;
 #if 0
 			Handle<Device::RTMaterial> material = defaultMaterial;
 #else
 			// Create a new material with an appropriate type
- 			Handle<Device::RTMaterial> material = g_device->rtNewMaterial(materialType.c_str());
+			Handle<Device::RTMaterial> material = g_device->rtNewMaterial(materialType.c_str());
 
-			bool cullBackFaces = true;
-			bool render = true;
 			if (materialType == "MatteTextured") {
 				g_device->rtSetTexture(material, "Kd", rtLoadTexture(FileName(textureFilePath)));
 			}
@@ -346,6 +347,7 @@ namespace embree {
 				g_device->rtSetFloat1(material, "thickness", 1.f);
 				render = true;
 			}
+
 			g_device->rtCommit(material);
 #endif
 

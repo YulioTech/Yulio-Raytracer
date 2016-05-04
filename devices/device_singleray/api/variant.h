@@ -49,7 +49,8 @@ namespace embree
 			STRING,    /*!< variant stores string value      */
 			IMAGE,     /*!< variant stores image reference   */
 			TEXTURE,   /*!< variant stores texture reference */
-			TRANSFORM  /*!< variant stores transformation    */
+			TRANSFORM,  /*!< variant stores transformation    */
+			POINTER		/*!< variant stores pointer value    */
 		};
 
 		/*! Constructs an empty variant object. */
@@ -69,6 +70,9 @@ namespace embree
 
 		/*! Constructs a variant object holding an int value. */
 		Variant(int i0) : type(INT1) { i[0] = i0; }
+
+		/*! Constructs a variant object holding a pointer value. */
+		Variant(void *p0) : type(POINTER) { p = p0; }
 
 		/*! Constructs a variant object holding an int2 value. */
 		Variant(int i0, int i1) : type(INT2) { i[0] = i0; i[1] = i1; }
@@ -142,6 +146,9 @@ namespace embree
 		/*! Extracts a texture reference from the variant type. */
 		Ref<Texture> getTexture() const { return texture; }
 
+		/*! Extracts a pointer from the variant type. */
+		void *getPointer() const { return p; }
+
 		/*! Extracts a transformation from the variant type. */
 		AffineSpace3f getTransform() const {
 			return AffineSpace3f(Vector3f(f[0], f[1], f[2]), Vector3f(f[3], f[4], f[5]), Vector3f(f[6], f[7], f[8]), Vector3f(f[9], f[10], f[11]));
@@ -157,6 +164,7 @@ namespace embree
 			bool b[4];          //!< Storage for single bool,bool2,bool3, and bool4 values.
 			int i[4];           //!< Storage for single int,int2,int3, and int4 values.
 			float f[12];         //!< Storage for single float,float2,float3, float4, and AffineSpace3f values.
+			void *p;
 		};
 		std::string str;      //!< Storage for string values.
 		Ref<DataStream> data; //!< Data stream

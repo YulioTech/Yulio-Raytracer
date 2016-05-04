@@ -29,7 +29,7 @@ namespace embree
 	Handle<Device::RTImage> rtLoadImage(const FileName &fileName)
 	{
 		if (image_map == nullptr)
-			image_map = new std::map<std::string, Handle<Device::RTImage> >;
+			image_map = new std::map<std::string, Handle<Device::RTImage>>;
 
 		if (image_map->find(fileName.str()) != image_map->end())
 			return((*image_map)[fileName.str()]);
@@ -47,7 +47,7 @@ namespace embree
 	Handle<Device::RTTexture> rtLoadTexture(const FileName &fileName, const std::string &filtering)
 	{
 		if (texture_map == nullptr)
-			texture_map = new std::map<std::string, Handle<Device::RTTexture> >;
+			texture_map = new std::map<std::string, Handle<Device::RTTexture>>;
 
 		if (texture_map->find(fileName.str()) != texture_map->end())
 			return((*texture_map)[fileName.str()]);

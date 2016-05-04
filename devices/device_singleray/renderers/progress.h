@@ -23,23 +23,23 @@
 
 namespace embree
 {
-  /*! prints progress during rendering */
-  class Progress
-  {
-  public:
-    Progress (size_t num = 0);
-    void start();
-    void next();
-    void end();
-  private:
-    void drawEmptyBar();
-  private:
-    MutexSys mutex;          //!< Mutex to protect progress output
-    size_t curElement;       //!< Number of elements processed
-    size_t numElements;      //!< Total number of elements to process
-    size_t numDrawn;         //!< Number of progress characters drawn
-    size_t terminalWidth;    //!< Width of terminal window in characters
-  };
+	/*! prints progress during rendering */
+	class Progress
+	{
+	public:
+		Progress(size_t num = 0);
+		void start();
+		void next();
+		void end();
+	private:
+		void drawEmptyBar();
+	private:
+		MutexSys mutex;          //!< Mutex to protect progress output
+		size_t curElement;       //!< Number of elements processed
+		size_t numElements;      //!< Total number of elements to process
+		size_t numDrawn;         //!< Number of progress characters drawn
+		size_t terminalWidth;    //!< Width of terminal window in characters
+	};
 }
 
 #endif

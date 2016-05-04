@@ -161,6 +161,7 @@ namespace embree
 		//rtcStopThreads();
 		TaskScheduler::destroy();
 		rtcExit();
+		clearImageCache();
 	}
 
 	/*******************************************************************
@@ -238,7 +239,7 @@ namespace embree
 		throw std::runtime_error("rtNewImageFromFile not supported on MIC");
 #else
 		if (!strncmp(file, "server:", 7)) file += 7;
-		Ref<Image> image = loadImage(file);
+		Ref<Image> image = loadImage(file, true);
 		if (image)
 			return (Device::RTImage) new ConstHandle<Image>(image);
 		else
@@ -534,6 +535,13 @@ namespace embree
 		if (!property) throw std::runtime_error("invalid property");
 		if (!handle) return;
 		((_RTHandle*)handle)->set(property, Variant(x, y, z, w));
+	}
+
+	void SingleRayDevice::rtSetPointer(Device::RTHandle handle, const char* property, void *p) {
+		RT_COMMAND_HEADER;
+		if (!property) throw std::runtime_error("invalid property");
+		if (!handle) return;
+		((_RTHandle*)handle)->set(property, Variant(p));
 	}
 
 	void SingleRayDevice::rtSetFloat1(Device::RTHandle handle, const char* property, float x) {

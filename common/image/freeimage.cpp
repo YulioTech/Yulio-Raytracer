@@ -77,9 +77,11 @@ namespace embree
 			return null;
 		}
 
+		// Clean up
+		FreeImage_Unload(dib);
 		FreeImage_DeInitialise();
 
-		return(image);
+		return image;
 	}
 
 	bool storeFreeImage(const Ref<Image>& image, const FileName& fileName, int quality) {
@@ -116,6 +118,8 @@ namespace embree
 			}
 		}
 
+		// Clean up
+		FreeImage_Unload(dib);
 		FreeImage_DeInitialise();
 
 		return bSuccess;

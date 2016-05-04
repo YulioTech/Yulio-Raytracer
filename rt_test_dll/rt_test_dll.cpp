@@ -12,17 +12,26 @@ using namespace Yulio;
 int main()
 {
 	ParamsRT params;
-	params.size = 1536;
-	params.spp = 64;
+	//params.renderer = "pathtracer";
+	params.size = 128;
+	params.spp = 1;
 	params.jpegQuality = 90;
 	params.debug = false;
-	if (!StartRT("../../models/Kia.dae", &params)) {
-		auto error = GetLastErrorRT();
+	char *colladaFile = "../../models/Kia.dae";
+	//char *colladaFile = "../../models/treeAlone_tempo_to_execute.dae";
+
+	const auto nInterations = 10;
+	for (auto i = 0; i < nInterations; ++i) {
+		if (!StartRT(colladaFile, &params)) {
+			auto error = GetLastErrorRT();
+		}
+#if 1
+		WaitRT();
+#else
+		std::this_thread::sleep_for(std::chrono::seconds(5));
+		StopRT(true);
+#endif
 	}
-
-	std::this_thread::sleep_for(std::chrono::seconds(20));
-
-	StopRT(true);
 
     return 0;
 }

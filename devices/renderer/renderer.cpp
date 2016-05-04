@@ -22,10 +22,158 @@
 #include "device/loaders/loaders.h"
 #include "glutdisplay.h"
 
+#include <iomanip>
+#include <filesystem>
 #include <thread>
 #include <atomic>
 #include <mutex>
 #include "YulioRT.h" // Exported async DLL API definition 
+
+namespace Yulio {
+
+	using namespace embree;
+	using namespace std;
+
+	// A shared mutex used by the Yulio code
+	std::mutex g_yulio_mutex;
+#define YULIO_CRITIAL_SECTION lock_guard<std::mutex> guard(Yulio::g_yulio_mutex)
+
+	class YulioStatusTracker {
+	private:
+		int numberOfStages = 0, currentStage = 0;
+		StatusRT status;
+		vector<ErrorCodeRT> allErrors;
+#if defined (_DEBUG)
+		const bool debug = true;
+#else
+		const bool debug = false;
+#endif
+
+	private:
+		string stateToString() const {
+			string s = "Unknown";
+			switch (status.state) {
+			case Inactive:
+				s = "Inactive";
+				break;
+			case Initialiazing:
+				s = "Initialiazing";
+				break;
+			case Rendering:
+				s = "Rendering";
+				break;
+			case Stopped:
+				s = "Stopped";
+				break;
+			case Done:
+				s = "Done";
+				break;
+			}
+			return s;
+		}
+
+	public:
+		YulioStatusTracker(int numberOfStages = 0) {
+			Init(numberOfStages);
+		}
+
+		void Reset() {
+			status.lastError = NoError;
+			status.progress = 0.f;
+			status.state = Inactive;
+			allErrors.clear();
+
+			if (debug) cout << *this << endl;
+		}
+
+		void Init(int numberOfStages_) {
+			numberOfStages = numberOfStages_;
+			currentStage = 0;
+			if (numberOfStages == 0) {
+				Reset();
+			}
+			else {
+				if (debug) cout << *this << endl;
+			}
+		}
+
+		void SetCurrentState(StateRT state) {
+			YULIO_CRITIAL_SECTION;
+			status.state = state;
+
+			switch (status.state)
+			{
+			case Inactive:
+				Reset();
+				break;
+			case Stopped: case Done:
+				status.progress = 1.f;
+				break;
+			default:
+				break;
+			}
+
+			if (debug) cout << *this << endl;
+		}
+
+		void SetCurrentStage(int stage) {
+			YULIO_CRITIAL_SECTION;
+			currentStage = stage < numberOfStages ? stage : currentStage;
+
+			if (debug) cout << *this << endl;
+		}
+
+		void UpdateCurrentStageProgress(float stageProgress) {
+			YULIO_CRITIAL_SECTION;
+			if (numberOfStages <= 0) return;
+
+			const float baseProgress = float(currentStage) / numberOfStages;
+			const float maxStageProgress = rcp(float(numberOfStages));
+			status.progress = baseProgress + stageProgress * maxStageProgress;
+
+			if (debug) cout << *this << endl;
+		}
+
+		void AddError(ErrorCodeRT error) {
+			YULIO_CRITIAL_SECTION;
+			status.lastError = error;
+			allErrors.push_back(error);
+
+			if (debug) cout << *this << endl;
+		}
+
+		StatusRT GetCurrentStatus() {
+			YULIO_CRITIAL_SECTION;
+			return status;
+		}
+
+		ErrorCodeRT GetLastError() {
+			YULIO_CRITIAL_SECTION;
+			return status.lastError;
+		}
+
+		friend std::ostream& operator<<(std::ostream& cout, const YulioStatusTracker &tracker);
+	};
+
+	__forceinline std::ostream& operator<<(std::ostream& cout, const YulioStatusTracker &tracker) {
+		return cout << "[ State = " << tracker.stateToString() <<
+			std::fixed << std::setw(10) << std::setprecision(2) << "; percentage done = " << tracker.status.progress <<
+			"; last error = " << tracker.status.lastError << endl <<
+			"; number of stages = " << tracker.numberOfStages <<
+			"; current stage = " << tracker.currentStage <<
+			" ]" << endl;
+	}
+
+	YulioStatusTracker yulioStatusTracker;
+
+	atomic<bool>	yulioRunning = false;
+	atomic<bool>	yulioStop = false;
+	atomic<bool>	yulioKeepResults = false;
+
+	void rsc(const RendererStatus &status) {
+		yulioStatusTracker.UpdateCurrentStageProgress(status.progress);
+	}
+}
 
 namespace embree
 {
@@ -157,6 +305,8 @@ namespace embree
 	}
 
 	void clearGlobalObjects() {
+		g_rendered = false;
+
 		g_renderer = null;
 		g_tonemapper = null;
 		g_frameBuffer = null;
@@ -166,6 +316,8 @@ namespace embree
 		g_render_scene = null;
 		rtClearTextureCache();
 		rtClearImageCache();
+
+		//std::this_thread::sleep_for(std::chrono::seconds(5));
 		delete g_device;
 		g_device = nullptr;
 	}
@@ -195,12 +347,15 @@ namespace embree
 		g_device->rtCommit(g_renderer);
 	}
 
-	static void parsePathTracer(Ref<ParseStream> cin, const FileName& path)
+	static void parsePathTracer(Ref<ParseStream> cin, const FileName& path, std::atomic<bool> *stopFlag, RendererStatusCallback *rsc)
 	{
 		g_renderer = g_device->rtNewRenderer("pathtracer");
 		if (g_depth >= 0) g_device->rtSetInt1(g_renderer, "maxDepth", g_depth);
 		g_device->rtSetFloat1(g_renderer, "tMaxShadowRay", g_tMaxShadowRay);
 		g_device->rtSetInt1(g_renderer, "sampler.spp", g_spp);
+		g_device->rtSetPointer(g_renderer, "stopFlag", stopFlag);
+		g_device->rtSetPointer(g_renderer, "statusCallback", rsc);
+
 		if (g_backplate) g_device->rtSetImage(g_renderer, "backplate", g_backplate);
 
 		if (cin->peek() != "{") goto finish;
@@ -222,12 +377,14 @@ namespace embree
 		g_device->rtCommit(g_renderer);
 	}
 
-	static void parseGPT(Ref<ParseStream> cin, const FileName& path)
+	static void parseGPT(Ref<ParseStream> cin, const FileName& path, std::atomic<bool> *stopFlag, RendererStatusCallback *rsc)
 	{
 		g_renderer = g_device->rtNewRenderer("gpt");
 		if (g_depth >= 0) g_device->rtSetInt1(g_renderer, "maxDepth", g_depth);
 		g_device->rtSetFloat1(g_renderer, "tMaxShadowRay", g_tMaxShadowRay);
 		g_device->rtSetInt1(g_renderer, "sampler.spp", g_spp);
+		g_device->rtSetPointer(g_renderer, "stopFlag", stopFlag);
+		g_device->rtSetPointer(g_renderer, "statusCallback", rsc);
 		if (g_backplate) g_device->rtSetImage(g_renderer, "backplate", g_backplate);
 
 		if (cin->peek() != "{") goto finish;
@@ -286,14 +443,24 @@ namespace embree
 
 	static void outputMode(const FileName &fileName)
 	{
-		if (!g_renderer) throw std::runtime_error("no renderer set");
+		Yulio::yulioStatusTracker.SetCurrentState(Yulio::Rendering);
+
+		if (!g_renderer) {
+			Yulio::yulioStatusTracker.AddError(Yulio::UnitializedRenderer);
+			throw std::runtime_error("no renderer set");
+		}
 
 		// Special handling of the stereoscopic render mode
 		if (g_stereo) {
 			Handle<Device::RTScene> scene = createScene();
 			
 			if (g_stereoCubeCameras.size() > 0) {
+
+				// Init the number of stages (i.e. camera views)
+				Yulio::yulioStatusTracker.Init(g_stereoCubeCameras.size());
+
 				std::vector<Ref<Image>> stereCubeFaceImages;
+				std::vector<std::string> savedImages;
 
 				// Make sure the cube face images are square
 				if (g_width != g_height) {
@@ -306,8 +473,11 @@ namespace embree
 				const size_t testCameraIndex = 2;
 				for (size_t i = (testCameraIndex - 1) * 12; i < testCameraIndex * 12; ++i) {
 #else
-				for (size_t i = 0; i < g_stereoCubeCameras.size(); ++i) {
+				for (size_t i = 0; i < g_stereoCubeCameras.size() && !Yulio::yulioStop; ++i) {
 #endif
+					// Set the current stage
+					Yulio::yulioStatusTracker.SetCurrentStage(i);
+
 					const auto stereoCubeCamera = g_stereoCubeCameras[i];
 
 					// Update the dynamic geometry (e.g. self-aligning instances, etc.)
@@ -398,6 +568,7 @@ namespace embree
 						// Store the cube face image to disk if needed (for debugging purposes)
 						if (g_debugging) {
 							storeImage(image, cubeFaceFileName, g_jpegQuality);
+							savedImages.push_back(cubeFaceFileName);
 						}
 					}
 
@@ -459,11 +630,27 @@ namespace embree
 						{
 							const auto finalFileName = std::string(fileName.path()) + "\\" + fileName.name() + "_" + cameraName + "." + "jpg"; // fileName.ext();
 							storeImage(finalImage, finalFileName, g_jpegQuality);
+							savedImages.push_back(cubeFaceFileName);
 
 							std::cout << "Generated stereoscopic cube map #" << (cameraIndex + 1) << " in file " << finalFileName << std::endl << std::endl;
 						}
 					}
+
+
+					// Stop if abort is requested
+					if (Yulio::yulioStop) {
+						if (!Yulio::yulioKeepResults) {
+							// Remove all the images written so far
+							for (auto imageFile : savedImages) {
+								std::experimental::filesystem::remove(imageFile);
+							}
+						}
+						break;
+					}
 				}
+
+				Yulio::yulioStatusTracker.SetCurrentState(Yulio::yulioStop ? Yulio::Stopped : Yulio::Done);
+
 			}
 			else if (!g_processingFprCollada) {
 				auto camSpaceOrigin = AffineSpace3f::lookAtPoint(g_camPos, g_camLookAt, g_camUp);
@@ -898,7 +1085,7 @@ namespace embree
 
 			/* JPEG compression quality (1-100 range) */
 			else if (tag == "-jpegQuality") {
-				g_jpegQuality = cin->getInt();
+				g_jpegQuality = clamp(cin->getInt(), 1, 100);
 			}
 
 			/* set framebuffer format */
@@ -932,12 +1119,11 @@ namespace embree
 			}
 
 			/* set renderer */
-			else if (tag == "-renderer")
-			{
+			else if (tag == "-renderer") {
 				const auto renderer = cin->getString();
 				if (renderer == "debug") parseDebugRenderer(cin, path);
-				else if (renderer == "pt" || renderer == "pathtracer") parsePathTracer(cin, path);
-				else if (renderer == "gpt") parseGPT(cin, path);
+				else if (renderer == "pt" || renderer == "pathtracer") parsePathTracer(cin, path, &Yulio::yulioStop, &Yulio::rsc);
+				else if (renderer == "gpt") parseGPT(cin, path, &Yulio::yulioStop, &Yulio::rsc);
 				else throw std::runtime_error("(when parsing -renderer) : unknown renderer: " + renderer);
 			}
 
@@ -1195,12 +1381,9 @@ namespace embree
 
 namespace Yulio {
 
-	using namespace embree;
-	using namespace std;
+	//using namespace embree;
+	//using namespace std;
 
-	static ErrorCodeRT lastError;
-	static atomic<bool> stopFlag = false;
-	static atomic<bool> running = false;
 	static thread workerThread;
 
 	const char *errorStrings[] = {
@@ -1209,122 +1392,151 @@ namespace Yulio {
 
 
 	void workerThreadRT(const string &file, const ParamsRT *params) {
-		while (!stopFlag) {
-			const FileName colladaFile = file;
-			// Lev: special handling for the purposes of FPR rendering and Collada processing
-			const auto extension = colladaFile.ext();
-			if (extension != "dae") {
-				lastError = RT_MISSING_COLLADA_FILE;
-				break;
-			}
-
-			g_sceneFileName = colladaFile;
-			g_workingDirectory = FileName(colladaFile).path();
-			g_processingFprCollada = true;
-
-			/*! create stream for parsing */
-			std::vector<std::string> argv = { "dummy_param" };
-			if (params) {
-				// stereo (HAS to be present)
-				{ argv.push_back("-stereo"); }
-				// renderer (i.e the integrator type)
-				{ argv.push_back("-renderer"); argv.push_back(params->renderer ? params->renderer : "pathtracer"); }
-				// spp
-				{ argv.push_back("-spp"); argv.push_back(to_string(params->spp)); }
-				// size
-				{ argv.push_back("-size"); argv.push_back(to_string(params->size)); argv.push_back(to_string(params->size)); }
-				// depth
-				{ argv.push_back("-depth"); argv.push_back(to_string(params->depth)); }
-				// jpegQuality
-				{ argv.push_back("-jpegQuality"); argv.push_back(to_string(params->jpegQuality)); }
-				// tMaxShadowRay
-				{ argv.push_back("-tMaxShadowRay"); argv.push_back(to_string(params->tMaxShadowRay)); }
-				// ambientlight
-				{ argv.push_back("-ambientlight"); argv.push_back(to_string(params->ambientlight[0]));  argv.push_back(to_string(params->ambientlight[1]));  argv.push_back(to_string(params->ambientlight[2])); }
-				// eyeSeparation
-				{ argv.push_back("-eyeSeparation"); argv.push_back(to_string(params->eyeSeparation)); }
-				// toeIn
-				{ if (params->toeIn) argv.push_back("-toeIn"); }
-				// eyeSeparation
-				{ argv.push_back("-zeroParallax"); argv.push_back(to_string(params->zeroParallax)); }
-				// debug
-				{ if (params->debug) argv.push_back("-debug"); }
-			}
-			Ref<ParseStream> stream = new ParseStream(new CommandLineStream(argv));
-
-			/*! parse device to use */
-			parseNumThreads(stream);
-			parseDevice(stream);
-
-			/*! create embree device */
-			if (!g_device) {
-				g_device = Device::rtCreateDevice("default", g_numThreads, g_rtcore_cfg.c_str());
-			}
-
-			createGlobalObjects();
-
-			vector<Handle<Device::RTPrimitive>> prims = rtLoadScene(g_sceneFileName, &g_stereoCubeCameras);
-			g_prims.insert(g_prims.end(), prims.begin(), prims.end());
-
-			if (!g_stereoCubeCameras.size()) {
-				lastError = RT_INVALID_COLLADA_FORMAT;
-				break;
-			}
-			
-			g_device->rtGetFloat1(g_stereoCubeCameras[0], "sceneScale", g_sceneScale);
-
-			/*! parse command line */
-			parseCommandLine(stream, g_workingDirectory);
-
-			//upload_time = getSeconds();
-			//PRINT(upload_time);
-
-			/*! if we did no render yet but have loaded a scene, switch to display mode */
-			if (//g_rendered ||
-				!g_prims.size()) {
-				lastError = RT_INVALID_COLLADA_FORMAT;
-				break;
-			}
 		
-			outputMode(g_outFileName);
+		yulioStatusTracker.SetCurrentState(Initialiazing);
 
-			/*! cleanup */
-			clearGlobalObjects();
+		const FileName colladaFile = file;
+
+		// Lev: special handling for the purposes of FPR rendering and Collada processing
+		const auto extension = colladaFile.ext();
+		if (extension != "dae") {
+			yulioStatusTracker.AddError(MissingColladaFile);
+			return;
 		}
 
-		stopFlag = false;
-		running = false;
+		g_sceneFileName = colladaFile;
+		g_workingDirectory = FileName(colladaFile).path();
+		g_processingFprCollada = true;
+
+		/*! create stream for parsing */
+		std::vector<std::string> argv = { "dummy_param" };
+		if (params) {
+			// stereo (HAS to be present)
+			{ argv.push_back("-stereo"); }
+			// renderer (i.e the integrator type)
+			{ argv.push_back("-renderer"); argv.push_back(params->renderer ? params->renderer : "pathtracer"); }
+			// spp
+			{ argv.push_back("-spp"); argv.push_back(to_string(params->spp)); }
+			// size
+			{ argv.push_back("-size"); argv.push_back(to_string(params->size)); argv.push_back(to_string(params->size)); }
+			// depth
+			{ argv.push_back("-depth"); argv.push_back(to_string(params->depth)); }
+			// jpegQuality
+			{ argv.push_back("-jpegQuality"); argv.push_back(to_string(params->jpegQuality)); }
+			// tMaxShadowRay
+			{ argv.push_back("-tMaxShadowRay"); argv.push_back(to_string(params->tMaxShadowRay)); }
+			// ambientlight
+			{ argv.push_back("-ambientlight"); argv.push_back(to_string(params->ambientlight[0]));  argv.push_back(to_string(params->ambientlight[1]));  argv.push_back(to_string(params->ambientlight[2])); }
+			// eyeSeparation
+			{ argv.push_back("-eyeSeparation"); argv.push_back(to_string(params->eyeSeparation)); }
+			// toeIn
+			{ if (params->toeIn) argv.push_back("-toeIn"); }
+			// eyeSeparation
+			{ argv.push_back("-zeroParallax"); argv.push_back(to_string(params->zeroParallax)); }
+			// debug
+			{ if (params->debug) argv.push_back("-debug"); }
+		}
+
+		Ref<ParseStream> stream = new ParseStream(new CommandLineStream(argv));
+
+		/*! parse device to use */
+		parseNumThreads(stream);
+		parseDevice(stream);
+
+		/*! create embree device */
+		if (!g_device) {
+			g_device = Device::rtCreateDevice("default", g_numThreads, g_rtcore_cfg.c_str());
+		}
+
+		createGlobalObjects();
+
+		// Note, local prims variable needs to be destroyed (i.e. the vector needs to be cleaned) before clearGlobalObjects is called (i.e. before g_device is deleted),
+		// so we create a local scope for that.
+		{
+			vector<Handle<Device::RTPrimitive>> prims = rtLoadScene(g_sceneFileName, &g_stereoCubeCameras);
+			g_prims.insert(g_prims.end(), prims.begin(), prims.end());
+		}
+
+		if (!g_stereoCubeCameras.size()) {
+			yulioStatusTracker.AddError(InvalidColladaFormat);
+			goto cleanup;
+		}
+		
+		g_device->rtGetFloat1(g_stereoCubeCameras[0], "sceneScale", g_sceneScale);
+
+		/*! parse command line */
+		parseCommandLine(stream, g_workingDirectory);
+
+		/*! if we did no render yet but have loaded a scene, switch to display mode */
+		if (//g_rendered ||
+			!g_prims.size()) {
+			yulioStatusTracker.AddError(InvalidColladaFormat);
+			goto cleanup;
+		}
+		
+		outputMode(g_outFileName);
+
+	cleanup:
+		/*! cleanup */
+		clearGlobalObjects();
 	}
 
 	DllApi bool StartRT(const char* colladaFile, const ParamsRT* params) {
+		if (yulioRunning)
+			return false;
+
+		yulioStatusTracker.Reset();
+
 		if (!colladaFile) {
-			lastError = RT_MISSING_COLLADA_FILE;
+			yulioStatusTracker.AddError(MissingColladaFile);
 			return false;
 		}
 
-		//startAsyncRT();
-		running = true;
 		workerThread = std::thread(workerThreadRT, string(colladaFile), params);
-		//t.detach();
+		if (workerThread.joinable()) {
+			yulioRunning = true;
+		}
 
-
-		return RT_SUCCESS;
+		return yulioRunning;
 	}
 
-	DllApi bool StopRT(bool keepResults) {
-		if (running) {
-			stopFlag = true;
+	DllApi bool WaitRT() {
+		if (!yulioRunning)
+			return false;
 
-			// Wait for the thread to finish
-			workerThread.join();
-		}
+		// Wait for the thread to finish
+		workerThread.join();
+		yulioRunning = false;
+		yulioStop = false;
 
 		return true;
 	}
 
-	DllApi ErrorCodeRT GetLastErrorRT() {
-		return lastError;
+	DllApi bool StopRT(bool keepResults) {
+		if (!yulioRunning)
+			return false;
+
+		yulioKeepResults = keepResults;
+
+		// Signal to all the listening parties to stop
+		yulioStop = true;
+
+		// Wait for the thread to finish
+		workerThread.join();
+		yulioRunning = false;
+		yulioStop = false;
+	
+		return true;
 	}
+
+	DllApi ErrorCodeRT GetLastErrorRT() {
+		return yulioStatusTracker.GetLastError();
+	}
+
+	DllApi StatusRT GetCurrentStatusRT() {
+		return yulioStatusTracker.GetCurrentStatus();
+	}
+
 
 }
 /******************************************************************************/

@@ -55,10 +55,9 @@ namespace embree
 	}
 
 	/*! loads an image from a file with auto-detection of format */
+	static std::map<std::string, Ref<Image>> image_cache;
 	Ref<Image> loadImage(const FileName& fileName, bool cache)
 	{
-		static std::map<std::string, Ref<Image>> image_cache;
-
 		if (!cache)
 			return loadImageFromDisk(fileName);
 
@@ -66,6 +65,10 @@ namespace embree
 			image_cache[fileName] = loadImageFromDisk(fileName);
 
 		return image_cache[fileName];
+	}
+
+	void clearImageCache() {
+		image_cache.clear();
 	}
 
 	/*! stores an image to file with auto-detection of format */

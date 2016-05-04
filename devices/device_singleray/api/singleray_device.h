@@ -74,6 +74,7 @@ namespace embree
     void rtSetInt2(RTHandle handle, const char* property, int x, int y);
     void rtSetInt3(RTHandle handle, const char* property, int x, int y, int z);
     void rtSetInt4(RTHandle handle, const char* property, int x, int y, int z, int w);
+	void rtSetPointer(RTHandle handle, const char* property, void *p);
     void rtSetFloat1(RTHandle handle, const char* property, float x);
 	void rtGetFloat1(RTHandle handle, const char* property, float &x);
     void rtSetFloat2(RTHandle handle, const char* property, float x, float y);
@@ -95,7 +96,7 @@ namespace embree
     *******************************************************************/
     
     void rtRenderFrame(RTRenderer renderer, RTCamera camera, RTScene scene, RTToneMapper toneMapper, RTFrameBuffer frameBuffer, int accumulate);
-    bool rtPick(RTCamera camera, float x, float y, RTScene scene, float& px, float& py, float& pz);
+	bool rtPick(RTCamera camera, float x, float y, RTScene scene, float& px, float& py, float& pz);
 
   private:
     MutexSys mutex;

@@ -75,7 +75,7 @@ namespace embree
 
 		/*! image destruction */
 		virtual ~ImageT() {
-			if (data) free(data); data = NULL;
+			if (data) free(data); data = nullptr;
 		}
 
 		/*! returns pixel color */
@@ -118,6 +118,7 @@ namespace embree
 
 	/*! Loads image from file. Format is auto detected. */
 	Ref<Image> loadImage(const FileName& filename, bool cache = false);
+	void clearImageCache();
 
 	/*! Loads image from JPEG file. */
 	Ref<Image> loadJPEG(const FileName& fileName);

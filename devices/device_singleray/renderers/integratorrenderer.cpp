@@ -53,10 +53,17 @@ namespace embree
 
 		/*! show progress to the user */
 		showProgress = parms.getInt("showprogress", 0);
+
+		stopFlag = (std::atomic<bool> *)parms.getPointer("stopFlag", nullptr);
+		statusCallback = (RendererStatusCallback *)parms.getPointer("statusCallback", nullptr);
+
+		updateStatus(Inactive);
 	}
 
 	void IntegratorRenderer::renderFrame(const Ref<Camera>& camera, const Ref<BackendScene>& scene, const Ref<ToneMapper>& toneMapper, Ref<SwapChain> swapchain, int accumulate)
 	{
+		updateStatus(Rendering);
+
 		if (accumulate == 0) iteration = 0;
 		new RenderJob(this, camera, scene, toneMapper, swapchain, accumulate, iteration);
 		iteration++;
@@ -120,7 +127,7 @@ namespace embree
 		if (taskIndex == taskCount - 1) t0 = getSeconds();
 
 		/*! tile pick loop */
-		while (true)
+		while (!renderer->stopRequested())
 		{
 			/*! pick a new tile */
 			size_t tile = tileID++;
@@ -131,7 +138,7 @@ namespace embree
 			const int tile_y = (tile / numTilesX)*TILE_SIZE;
 			Random randomNumberGenerator(tile_x * 91711 + tile_y * 81551 + 3433 * swapchain->firstActiveLine());
 
-			for (size_t dy = 0; dy < TILE_SIZE; dy++)
+			for (size_t dy = 0; dy < TILE_SIZE && !renderer->stopRequested(); dy++)
 			{
 				size_t y = tile_y + dy;
 				if (y >= swapchain->getHeight()) continue;
@@ -139,7 +146,7 @@ namespace embree
 				if (!swapchain->activeLine(y)) continue;
 				size_t _y = swapchain->raster2buffer(y);
 
-				for (size_t dx = 0; dx < TILE_SIZE; dx++)
+				for (size_t dx = 0; dx < TILE_SIZE && !renderer->stopRequested(); dx++)
 				{
 					size_t x = tile_x + dx;
 					if (x >= swapchain->getWidth()) continue;
@@ -171,10 +178,14 @@ namespace embree
 			if (renderer->showProgress) progress.next();
 
 			/*! mark one more tile as finished */
-			framebuffer->finishTile();
+			framebuffer->finishTile(1, renderer->stopRequested());
+
+			renderer->updateStatus(float(tileID) / float(numTilesX * numTilesY));
 		}
 
 		/*! we access the atomic ray counter only once per tile */
 		atomicNumRays += state.numRays;
+
+		renderer->updateStatus(Done);
 	}
 }

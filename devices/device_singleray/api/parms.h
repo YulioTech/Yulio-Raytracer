@@ -51,6 +51,13 @@ namespace embree
 			return (*i).second.getInt();
 		}
 
+		/*! Extracts a named pointer out of the container. */
+		void *getPointer(const char* name, void *def = nullptr) const {
+			std::map<std::string, Variant>::const_iterator i = m.find(name);
+			if (i == m.end() || (*i).second.type != Variant::POINTER) return def;
+			return (*i).second.getPointer();
+		}
+
 		/*! Extracts a named float out of the container. */
 		float getFloat(const char* name, float def = zero) const {
 			std::map<std::string, Variant>::const_iterator i = m.find(name);

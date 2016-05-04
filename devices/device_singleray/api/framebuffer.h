@@ -58,10 +58,11 @@ namespace embree
 		}
 
 		/*! register a tile as finished */
-		bool finishTile(int numTiles = 1)
+		bool finishTile(int numTiles = 1, bool forceFinish = false)
 		{
 			Lock<MutexSys> lock(mutex);
-			remainingTiles -= numTiles;
+			if (forceFinish) remainingTiles = 0;
+			else remainingTiles -= numTiles;
 			if (remainingTiles == 0) {
 				condition.broadcast();
 				return true;

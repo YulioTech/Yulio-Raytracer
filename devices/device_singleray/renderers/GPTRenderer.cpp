@@ -46,16 +46,10 @@ namespace embree
 		else throw std::runtime_error("unknown filter type: " + _filter);
 
 		/*! get framebuffer configuration */
-		gamma = parms.getFloat("gamma", 1.0f);
+		gamma = parms.getFloat("gamma", 1.f);
 
 		/*! show progress to the user */
 		showProgress = parms.getInt("showprogress", 0);
-	}
-
-	void GPTRenderer::stopRendering() {
-		if (renderJob) {
-			int n = 0;
-		}
 	}
 
 	void GPTRenderer::renderFrame(const Ref<Camera>& camera, const Ref<BackendScene>& scene, const Ref<ToneMapper>& toneMapper, Ref<SwapChain> swapchain, int accumulate)

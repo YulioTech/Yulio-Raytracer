@@ -25,28 +25,24 @@
 
 namespace embree
 {
-  /*! Renderer interface definition. */
-  class Renderer : public RefCount {
-    ALIGNED_CLASS
-  public:
+	/*! Renderer interface definition. */
+	class Renderer : public RefCount {
+		ALIGNED_CLASS
+	public:
 
-    /*! tile size to use for rendering */
-    enum { TILE_SIZE = 16 };
+		/*! tile size to use for rendering */
+		enum { TILE_SIZE = 16 };
 
-    /*! Renderers need a virtual destructor. */
-    virtual ~Renderer() {}
+		/*! Renderers need a virtual destructor. */
+		virtual ~Renderer() {}
 
-    /*! Renders a single frame. */
-    virtual void renderFrame(const Ref<Camera>&       camera,   /*!< Camera to render from.      */
-                             const Ref<BackendScene>& scene,    /*!< Scene to render.            */
-                             const Ref<ToneMapper>&   toneMapper, /*!< Tonemapper to use.          */
-                             Ref<SwapChain>           film,  /*!< Framebuffer to render into. */
-                             int accumulate) = 0;               /*!< Accumulation mode.          */
-
-	/*! Forcefully stop rendering (if early termination is needed). */
-	virtual void stopRendering() = 0;
-
-  };
+		/*! Renders a single frame. */
+		virtual void renderFrame(const Ref<Camera>&       camera,   /*!< Camera to render from.      */
+			const Ref<BackendScene>& scene,    /*!< Scene to render.            */
+			const Ref<ToneMapper>&   toneMapper, /*!< Tonemapper to use.          */
+			Ref<SwapChain>           film,  /*!< Framebuffer to render into. */
+			int accumulate) = 0;               /*!< Accumulation mode.          */
+	};
 }
 
 #endif

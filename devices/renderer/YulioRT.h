@@ -8,12 +8,27 @@
 
 namespace Yulio {
 
-	enum ErrorCodeRT
-	{
-		RT_SUCCESS = 0,
-		RT_MISSING_COLLADA_FILE,
-		RT_INVALID_COLLADA_FORMAT,
-		RT_FAILED_UNKNOWN
+	enum ErrorCodeRT {
+		NoError = 0,
+		MissingColladaFile,
+		InvalidColladaFormat,
+		UnitializedRenderer,
+		UnknownError = 1000
+	};
+
+	enum StateRT {
+		Inactive,
+		Initialiazing,
+		Rendering,
+		Stopped,
+		Done
+	};
+
+	struct StatusRT {
+	
+		StateRT state;
+		float progress; // A relative progress value in the range [0.0:1.0]
+		ErrorCodeRT lastError;
 	};
 
 	struct ParamsRT {
@@ -21,7 +36,7 @@ namespace Yulio {
 		int size = 1536; 					// single cube face image resolution (should be 1:1 ration; for testing puposes, can be reduced to speed up the rendering)
 		int depth = 10; 					// max number of secondary ray bounces (will mostly affect translucent materials, e.g.glass)
 		float tMaxShadowRay = 120.f; 		// max length of shadow rays (will affect how dark / bright the scene will appear in the rendered image)
-		int spp = 32;						// number of samples per pixel(the higher the number, the less noisy the rendered image will be; has to be a pow of 2 - otherwise will be floored to the nearest power of 2)
+		int spp = 256;						// number of samples per pixel(the higher the number, the less noisy the rendered image will be; has to be a pow of 2 - otherwise will be floored to the nearest power of 2)
 		float ambientlight[3] = { .83f, .95f, .98f }; // lighter blue sky color
 		float eyeSeparation = 2.5f;			// distance between the eyes in inches (2.5 is the default)
 		bool toeIn = true; 					// forces a toe - in stereoscopic camera if present, with the zero parallax value specified separately
@@ -31,7 +46,8 @@ namespace Yulio {
 	};
 
 	DllApi bool StartRT(const char* colladaFile, const ParamsRT* params);
+	DllApi bool WaitRT();
 	DllApi bool StopRT(bool keepResults);
 	DllApi ErrorCodeRT GetLastErrorRT();
-	//DllApi char* ErrorCodeToString(ErrorCodeRT errorCode);
+	DllApi StatusRT GetCurrentStatusRT();
 }

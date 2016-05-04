@@ -17,7 +17,7 @@
 -size 800 800 
 -depth 10
 -tMaxShadowRay 120.0
--spp 128
+#-spp 128
 -ambientlight 8 8 8
 #-ambientlight 0.53 0.81 0.98 #sky color
 #-ambientlight 0.83 0.95 0.98 #sky color
