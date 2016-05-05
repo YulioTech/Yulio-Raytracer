@@ -33,8 +33,11 @@ namespace embree
 	lib_t openLibrary(const std::string& file)
 	{
 		std::string fullName = file + ".dll";
-		FileName executable = getExecutableFileName();
-		HANDLE handle = LoadLibrary((executable.path() + fullName).c_str());
+		HANDLE handle = LoadLibrary(fullName.c_str());
+		if (!handle) {
+			FileName executable = getExecutableFileName();
+			handle = LoadLibrary((executable.path() + fullName).c_str());
+		}
 		return lib_t(handle);
 	}
 

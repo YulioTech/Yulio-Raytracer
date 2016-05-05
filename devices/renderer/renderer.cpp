@@ -453,7 +453,7 @@ namespace embree
 		// Special handling of the stereoscopic render mode
 		if (g_stereo) {
 			Handle<Device::RTScene> scene = createScene();
-			
+
 			if (g_stereoCubeCameras.size() > 0) {
 
 				// Init the number of stages (i.e. camera views)
@@ -635,7 +635,6 @@ namespace embree
 							std::cout << "Generated stereoscopic cube map #" << (cameraIndex + 1) << " in file " << finalFileName << std::endl << std::endl;
 						}
 					}
-
 
 					// Stop if abort is requested
 					if (Yulio::yulioStop) {
@@ -1408,34 +1407,35 @@ namespace Yulio {
 		g_workingDirectory = FileName(colladaFile).path();
 		g_processingFprCollada = true;
 
+		ParamsRT currentParams; // Initialized with the defaults
+		if (params) currentParams = *params;
+
 		/*! create stream for parsing */
 		std::vector<std::string> argv = { "dummy_param" };
-		if (params) {
-			// stereo (HAS to be present)
-			{ argv.push_back("-stereo"); }
-			// renderer (i.e the integrator type)
-			{ argv.push_back("-renderer"); argv.push_back(params->renderer ? params->renderer : "pathtracer"); }
-			// spp
-			{ argv.push_back("-spp"); argv.push_back(to_string(params->spp)); }
-			// size
-			{ argv.push_back("-size"); argv.push_back(to_string(params->size)); argv.push_back(to_string(params->size)); }
-			// depth
-			{ argv.push_back("-depth"); argv.push_back(to_string(params->depth)); }
-			// jpegQuality
-			{ argv.push_back("-jpegQuality"); argv.push_back(to_string(params->jpegQuality)); }
-			// tMaxShadowRay
-			{ argv.push_back("-tMaxShadowRay"); argv.push_back(to_string(params->tMaxShadowRay)); }
-			// ambientlight
-			{ argv.push_back("-ambientlight"); argv.push_back(to_string(params->ambientlight[0]));  argv.push_back(to_string(params->ambientlight[1]));  argv.push_back(to_string(params->ambientlight[2])); }
-			// eyeSeparation
-			{ argv.push_back("-eyeSeparation"); argv.push_back(to_string(params->eyeSeparation)); }
-			// toeIn
-			{ if (params->toeIn) argv.push_back("-toeIn"); }
-			// eyeSeparation
-			{ argv.push_back("-zeroParallax"); argv.push_back(to_string(params->zeroParallax)); }
-			// debug
-			{ if (params->debug) argv.push_back("-debug"); }
-		}
+		// stereo (HAS to be present)
+		{ argv.push_back("-stereo"); }
+		// renderer (i.e the integrator type)
+		{ argv.push_back("-renderer"); argv.push_back(currentParams.renderer ? currentParams.renderer : "pathtracer"); }
+		// spp
+		{ argv.push_back("-spp"); argv.push_back(to_string(currentParams.spp)); }
+		// size
+		{ argv.push_back("-size"); argv.push_back(to_string(currentParams.size)); argv.push_back(to_string(currentParams.size)); }
+		// depth
+		{ argv.push_back("-depth"); argv.push_back(to_string(currentParams.depth)); }
+		// jpegQuality
+		{ argv.push_back("-jpegQuality"); argv.push_back(to_string(currentParams.jpegQuality)); }
+		// tMaxShadowRay
+		{ argv.push_back("-tMaxShadowRay"); argv.push_back(to_string(currentParams.tMaxShadowRay)); }
+		// ambientlight
+		{ argv.push_back("-ambientlight"); argv.push_back(to_string(currentParams.ambientlight[0]));  argv.push_back(to_string(currentParams.ambientlight[1]));  argv.push_back(to_string(currentParams.ambientlight[2])); }
+		// eyeSeparation
+		{ argv.push_back("-eyeSeparation"); argv.push_back(to_string(currentParams.eyeSeparation)); }
+		// toeIn
+		{ if (currentParams.toeIn) argv.push_back("-toeIn"); }
+		// eyeSeparation
+		{ argv.push_back("-zeroParallax"); argv.push_back(to_string(currentParams.zeroParallax)); }
+		// debug
+		{ if (currentParams.debug) argv.push_back("-debug"); }
 
 		Ref<ParseStream> stream = new ParseStream(new CommandLineStream(argv));
 

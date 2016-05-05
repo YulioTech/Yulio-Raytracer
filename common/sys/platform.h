@@ -143,9 +143,9 @@
 #endif
 
 #ifdef __GNUC__
-    #define MAYBE_UNUSED __attribute__((used))
+#define MAYBE_UNUSED __attribute__((used))
 #else
-    #define MAYBE_UNUSED
+#define MAYBE_UNUSED
 #endif
 
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
@@ -239,32 +239,32 @@ namespace embree
 {
 #define ALIGNED_CLASS                                                \
   public:                                                            \
-    void* operator new(size_t size) { return alignedMalloc(size); }  \
-  void operator delete(void* ptr) { alignedFree(ptr); }      \
-  void* operator new[](size_t size) { return alignedMalloc(size); }  \
-  void operator delete[](void* ptr) { alignedFree(ptr); }    \
+	void* operator new(size_t size) { return alignedMalloc(size); }  \
+	void operator delete(void* ptr) { alignedFree(ptr); }      \
+	void* operator new[](size_t size) { return alignedMalloc(size); }  \
+	void operator delete[](void* ptr) { alignedFree(ptr); }    \
  private:
 
 #define ALIGNED_CLASS_(align)                                           \
   public:                                                               \
-    void* operator new(size_t size) { return alignedMalloc(size,align); } \
-  void operator delete(void* ptr) { alignedFree(ptr); }                 \
-  void* operator new[](size_t size) { return alignedMalloc(size,align); } \
-  void operator delete[](void* ptr) { alignedFree(ptr); }               \
+	void* operator new(size_t size) { return alignedMalloc(size,align); } \
+	void operator delete(void* ptr) { alignedFree(ptr); }                 \
+	void* operator new[](size_t size) { return alignedMalloc(size,align); } \
+	void operator delete[](void* ptr) { alignedFree(ptr); }               \
  private:
-  
-  /*! aligned allocation */
-  void* alignedMalloc(size_t size, size_t align = 64);
-  void alignedFree(const void* ptr);
 
-  /*! allocates pages directly from OS */
-  void* os_malloc (size_t bytes);
-  void* os_reserve(size_t bytes);
-  void  os_commit (void* ptr, size_t bytes);
-  void  os_free   (void* ptr, size_t bytes);
+	/*! aligned allocation */
+	void* alignedMalloc(size_t size, size_t align = 64);
+	void alignedFree(const void* ptr);
 
-  /*! returns performance counter in seconds */
-  double getSeconds();
+	/*! allocates pages directly from OS */
+	void* os_malloc(size_t bytes);
+	void* os_reserve(size_t bytes);
+	void  os_commit(void* ptr, size_t bytes);
+	void  os_free(void* ptr, size_t bytes);
+
+	/*! returns performance counter in seconds */
+	double getSeconds();
 }
 
 #endif
