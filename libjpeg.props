@@ -3,8 +3,8 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>E:\jpeg-9b;$(IncludePath)</IncludePath>
-    <LibraryPath>E:\jpeg-9b\x64\Release;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
+    <IncludePath>$(SolutionDir)3rd party\jpeg-9b\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)3rd party\jpeg-9b\bin\x64;$(LibraryPath)</LibraryPath>
     <_PropertySheetDisplayName>libjpeg</_PropertySheetDisplayName>
   </PropertyGroup>
   <ItemDefinitionGroup>

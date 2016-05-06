@@ -5,6 +5,7 @@
 namespace embree
 {
 	Ref<Image> loadFreeImage(const FileName& fileName) {
+		
 		FreeImage_Initialise();
 
 		FREE_IMAGE_FORMAT fif = FIF_UNKNOWN;

@@ -38,7 +38,9 @@ namespace embree
 		if (ext == "tiff") return loadMagick(fileName);
 #endif
 #ifdef USE_LIBJPEG
-		if (ext == "jpg") return loadJPEG(fileName);
+		// Note, that FreeImage (see the call below) appears to have a bug that causes JPEG images of certain sizes to be loaded improperly (they appear skewed and/or discolored).
+		// So, for the time being, for loading JPEGs in particular, we'll be using libjpeg (jpeg-9b) instead.
+		if (ext == "jpg" || ext == "jpeg") return loadJPEG(fileName);
 #endif
 		if (ext == "pfm") return loadPFM(fileName);
 		if (ext == "ppm") return loadPPM(fileName);
@@ -88,9 +90,9 @@ namespace embree
 #ifdef USE_DEVIL
 		if (ext == "png") { storeDevIL(img, fileName);  return; }
 #endif
-#ifdef USE_LIBJPEG
-		if (ext == "jpg") { storeJPEG(img, fileName, quality);  return; }
-#endif
+//#ifdef USE_LIBJPEG
+//		if (ext == "jpg") { storeJPEG(img, fileName, quality);  return; }
+//#endif
 		if (ext == "png") { storePNG(img, fileName);  return; }
 		if (ext == "pfm") { storePFM(img, fileName);  return; }
 		if (ext == "ppm") { storePPM(img, fileName);  return; }
