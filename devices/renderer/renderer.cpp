@@ -1533,12 +1533,18 @@ namespace Yulio {
 		return yulioStatusTracker.GetLastError();
 	}
 
-	DllApi StatusRT GetCurrentStatusRT() {
-		return yulioStatusTracker.GetCurrentStatus();
+	DllApi void GetCurrentStatusRT(StatusRT *status) {
+		if (!status) return;
+
+		try {
+			*status = yulioStatusTracker.GetCurrentStatus();
+		}
+		catch (...) {
+			yulioStatusTracker.AddError(FailedToPopulateStatus);
+		}
 	}
-
-
 }
+
 /******************************************************************************/
 /*                               Main Function                                */
 /******************************************************************************/

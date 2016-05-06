@@ -13,6 +13,7 @@ namespace Yulio {
 		MissingColladaFile,
 		InvalidColladaFormat,
 		UnitializedRenderer,
+		FailedToPopulateStatus,
 		UnknownError = 1000
 	};
 
@@ -49,5 +50,5 @@ namespace Yulio {
 	DllApi bool WaitRT();
 	DllApi bool StopRT(bool keepResults);
 	DllApi ErrorCodeRT GetLastErrorRT();
-	DllApi StatusRT GetCurrentStatusRT();
+	DllApi void GetCurrentStatusRT(StatusRT *status);
 }
