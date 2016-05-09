@@ -10,6 +10,7 @@ namespace Yulio {
 
 	enum ErrorCodeRT {
 		NoError = 0,
+		RenderingIsInProgress,
 		MissingColladaFile,
 		InvalidColladaFormat,
 		UnitializedRenderer,

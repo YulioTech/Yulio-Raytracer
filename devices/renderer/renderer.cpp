@@ -1390,21 +1390,67 @@ namespace Yulio {
 	};
 
 
-	void workerThreadRT(const string &file, const ParamsRT *params) {
-		
-		yulioStatusTracker.SetCurrentState(Initialiazing);
+	void workerThreadRT(const string &file, Ref<ParseStream> stream) {
 
-		const FileName colladaFile = file;
-
-		// Lev: special handling for the purposes of FPR rendering and Collada processing
-		const auto extension = colladaFile.ext();
-		if (extension != "dae") {
-			yulioStatusTracker.AddError(MissingColladaFile);
-			return;
+		// Note, local prims variable needs to be destroyed (i.e. the vector needs to be cleaned) before clearGlobalObjects is called (i.e. before g_device is deleted),
+		// so we create a local scope for that.
+		{
+			vector<Handle<Device::RTPrimitive>> prims = rtLoadScene(g_sceneFileName, &g_stereoCubeCameras);
+			g_prims.insert(g_prims.end(), prims.begin(), prims.end());
 		}
 
-		g_sceneFileName = colladaFile;
-		g_workingDirectory = FileName(colladaFile).path();
+		if (!g_stereoCubeCameras.size()) {
+			yulioStatusTracker.AddError(InvalidColladaFormat);
+			goto cleanup;
+		}
+		
+		g_device->rtGetFloat1(g_stereoCubeCameras[0], "sceneScale", g_sceneScale);
+
+		/*! parse command line */
+		parseCommandLine(stream, g_workingDirectory);
+
+		/*! if we did no render yet but have loaded a scene, switch to display mode */
+		if (//g_rendered ||
+			!g_prims.size()) {
+			yulioStatusTracker.AddError(InvalidColladaFormat);
+			goto cleanup;
+		}
+		
+		outputMode(g_outFileName);
+
+	cleanup:
+		/*! cleanup */
+		clearGlobalObjects();
+	}
+
+	DllApi bool StartRT(const char* colladaFile, const ParamsRT* params) {
+		if (yulioRunning) {
+			yulioStatusTracker.AddError(RenderingIsInProgress);
+			return false;
+		}
+
+		yulioStatusTracker.Reset();
+
+		if (!colladaFile) {
+			yulioStatusTracker.AddError(MissingColladaFile);
+			return false;
+		}
+
+		yulioStatusTracker.SetCurrentState(Initialiazing);
+
+		// Do some of the initialization work on the calling thread (i.e. synchronously). In particular, the loading of the device DLLs has to be handled
+		// this way so as to make the play nice with the SetDefaultDllDirectories, AddDllDirectory and other such functions.
+		const FileName fn = colladaFile;
+
+		// Lev: special handling for the purposes of FPR rendering and Collada processing
+		const auto extension = fn.ext();
+		if (extension != "dae") {
+			yulioStatusTracker.AddError(MissingColladaFile);
+			return false;
+		}
+
+		g_sceneFileName = fn;
+		g_workingDirectory = fn.path();
 		g_processingFprCollada = true;
 
 		ParamsRT currentParams; // Initialized with the defaults
@@ -1450,49 +1496,8 @@ namespace Yulio {
 
 		createGlobalObjects();
 
-		// Note, local prims variable needs to be destroyed (i.e. the vector needs to be cleaned) before clearGlobalObjects is called (i.e. before g_device is deleted),
-		// so we create a local scope for that.
-		{
-			vector<Handle<Device::RTPrimitive>> prims = rtLoadScene(g_sceneFileName, &g_stereoCubeCameras);
-			g_prims.insert(g_prims.end(), prims.begin(), prims.end());
-		}
-
-		if (!g_stereoCubeCameras.size()) {
-			yulioStatusTracker.AddError(InvalidColladaFormat);
-			goto cleanup;
-		}
-		
-		g_device->rtGetFloat1(g_stereoCubeCameras[0], "sceneScale", g_sceneScale);
-
-		/*! parse command line */
-		parseCommandLine(stream, g_workingDirectory);
-
-		/*! if we did no render yet but have loaded a scene, switch to display mode */
-		if (//g_rendered ||
-			!g_prims.size()) {
-			yulioStatusTracker.AddError(InvalidColladaFormat);
-			goto cleanup;
-		}
-		
-		outputMode(g_outFileName);
-
-	cleanup:
-		/*! cleanup */
-		clearGlobalObjects();
-	}
-
-	DllApi bool StartRT(const char* colladaFile, const ParamsRT* params) {
-		if (yulioRunning)
-			return false;
-
-		yulioStatusTracker.Reset();
-
-		if (!colladaFile) {
-			yulioStatusTracker.AddError(MissingColladaFile);
-			return false;
-		}
-
-		workerThread = std::thread(workerThreadRT, string(colladaFile), params);
+		// Run the worker thread to do the time consuming stuff (it'll load the geometry and perform the rendering)
+		workerThread = std::thread(workerThreadRT, string(colladaFile), stream);
 		if (workerThread.joinable()) {
 			yulioRunning = true;
 		}
