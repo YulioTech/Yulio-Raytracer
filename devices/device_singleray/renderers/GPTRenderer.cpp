@@ -5,7 +5,7 @@
 #include "renderers/GPTPoissonSolver/Solver.hpp"
 
 /// If defined, applies reconstruction after rendering.
-#define RECONSTRUCT
+//#define RECONSTRUCT
 
 /* include all samplers */
 #include "samplers/sampler.h"
@@ -223,7 +223,8 @@ namespace embree
 							scene, state);
 					}
 
-					const Color L0 = swapchain->update(x, _y, centerVeryDirect, spp, accumulate);
+					//const Color L0 = swapchain->update(x, _y, centerVeryDirect, spp, accumulate);
+					const Color L0 = swapchain->update(x, _y, centerThroughput, spp, accumulate);
 					const Color L1 = toneMapper->eval(L0, x, y, swapchain);
 					framebuffer->set(x, _y, L1);
 				}

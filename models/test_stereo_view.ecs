@@ -1,7 +1,3 @@
-#-vp 0 100 0
-#-vi 0 100 100
-#-vu 0 1 0
-#-fov 90
 
 # Settings for Sponza scene ------------------------
 -vp 2.25067 8.24132 -0.0492483
@@ -9,8 +5,13 @@
 #-vu 0.436514 0.899693 -0.00291584
 -vu 0 1 0
 -fov 96.6708
+-ambientlight 8 8 8
 #-------------------------------------------------
 
+#-vp 0 100 0
+#-vi 0 100 100
+#-vu 0 1 0
+#-fov 90
 #-o output.png
 #-o output1.jpg
 #-size 1536 1536 
@@ -18,13 +19,12 @@
 -depth 10
 -tMaxShadowRay 120.0
 #-spp 128
--ambientlight 8 8 8
 #-ambientlight 0.53 0.81 0.98 #sky color
 #-ambientlight 0.83 0.95 0.98 #sky color
 #-stereo
 #-toeIn
--renderer pathtracer
-#-renderer gpt
-#-framebuffer RGB_FLOAT32
+#-renderer pathtracer
+-renderer gpt
+-framebuffer RGB_FLOAT32
 #-debug
 

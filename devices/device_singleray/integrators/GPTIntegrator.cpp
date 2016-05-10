@@ -321,60 +321,67 @@ namespace embree
 						continue;
 
 					/*! Either use precomputed samples for the light or sample light now. */
-					LightSample ls;
+					LightSample baseLs;
+					Color baseBrdf = zero;
 					/*
 					if (scene->allLights[i]->precompute())
 						ls = state.sample->getLightSample(precomputedLightSampleID[i]);
 					else
 					*/
-						ls.L = scene->allLights[i]->sample(basePath.lastDG, ls, state.sample->getVec2f(lightSampleID));
+						baseLs.L = scene->allLights[i]->sample(basePath.lastDG, baseLs, state.sample->getVec2f(lightSampleID));
 
 					// There values are probably needed soon for the Jacobians.
 					//float mainDistanceSquared = (basePath.lastDG.P - dRec.p).lengthSquared();
 					//Float mainOpposingCosine = dot(dRec.n, (main.rRec.its.p - dRec.p)) / sqrt(mainDistanceSquared);
 
+#if 0
 					/*! Ignore zero radiance or illumination from the back. */
 					//if (ls.L == Color(zero) || ls.wi.pdf == 0.0f || dot(dg.Ns,Vector3f(ls.wi)) <= 0.0f) continue; 
 					if (ls.L == Color(zero) || ls.wi.pdf == 0.0f) continue;
-
+					
 					/*! Evaluate BRDF */
 					Color brdf = baseBRDFs.eval(wo, basePath.lastDG, ls.wi, directLightingBRDFTypes);
 					if (brdf == Color(zero)) continue;
+#else
+					if (baseLs.L != Color(zero) && baseLs.wi.pdf > 0.f) {
+						baseBrdf = baseBRDFs.eval(wo, basePath.lastDG, baseLs.wi, directLightingBRDFTypes);
+					}
+#endif
 
 					/*! Test for shadows. */
-					ls.tMax = tMaxShadowRay;
-					Ray shadowRay(basePath.lastDG.P, ls.wi, basePath.lastDG.error*epsilon, ls.tMax - basePath.lastDG.error*epsilon, basePath.lastRay.time, basePath.lastDG.shadowMask);
-					//bool inShadow = scene->intersector->occluded(shadowRay);
-					rtcOccluded(scene->scene, (RTCRay&)shadowRay);
+					baseLs.tMax = tMaxShadowRay;
+					Ray baseShadowRay(basePath.lastDG.P, baseLs.wi, basePath.lastDG.error*epsilon, baseLs.tMax - basePath.lastDG.error*epsilon, basePath.lastRay.time, basePath.lastDG.shadowMask);
+					rtcOccluded(scene->scene, (RTCRay&)baseShadowRay);
 					state.numRays++;
+#if 0
 					if (shadowRay) continue;
 
 					/*! Evaluate BRDF. */
 					outVeryDirect += basePath.misWeight * ls.L * brdf * rcp(ls.wi.pdf);
-
+#endif
 					// Stuff from Mitsuba "translated" into our framework
 					{
-						Color mainEmitterRadiance = ls.L;
-						bool mainEmitterVisible = shadowRay;
-						Color mainBSDFValue = brdf;
+						Color mainEmitterRadiance = baseLs.L;
+						bool mainEmitterVisible = !baseShadowRay;
+						Color mainBSDFValue = baseBrdf;
 						// Calculate the probability density of having generated the sampled path segment by BSDF sampling. Note that if the emitter is not visible, the probability density is zero.
 						// Even if the BSDF sampler has zero probability density, the light sampler can still sample it.
-						float mainBsdfPdf = mainEmitterVisible ? baseBRDFs.pdf(wo, basePath.lastDG, ls.wi, directLightingBRDFTypes) : 0.f;
+						float mainBsdfPdf = mainEmitterVisible ? baseBRDFs.pdf(wo, basePath.lastDG, baseLs.wi, directLightingBRDFTypes) : 0.f;
 
 						// There values are probably needed soon for the Jacobians.
-						float mainDistanceSquared = lengthSquared(basePath.lastDG.P - ls.p);
-						float mainOpposingCosine = dot(ls.n, (basePath.lastDG.P - ls.p)) / sqrt(mainDistanceSquared);
+						float mainDistanceSquared = lengthSquared(basePath.lastDG.P - baseLs.p);
+						float mainOpposingCosine = dot(baseLs.n, (basePath.lastDG.P - baseLs.p)) / sqrt(mainDistanceSquared);
 
 						// Power heuristic weights for the following strategies: light sample from base, BSDF sample from base.
-						float mainWeightNumerator = basePath.pdf * ls.wi.pdf;
-						float mainWeightDenominator = (basePath.pdf * basePath.pdf) * ((ls.wi.pdf * ls.wi.pdf) + (mainBsdfPdf * mainBsdfPdf));
+						float mainWeightNumerator = basePath.pdf * baseLs.wi.pdf;
+						float mainWeightDenominator = (basePath.pdf * basePath.pdf) * ((baseLs.wi.pdf * baseLs.wi.pdf) + (mainBsdfPdf * mainBsdfPdf));
 
 						// The base path is good. Add radiance differences to offset paths.
 						for (int i = 0; i < shiftedCount; ++i) {
 							// Evaluate and apply the gradient.
 							LightPath &shiftedPath = shiftedPaths[i];
 
-							Color  mainContribution = zero;
+							Color mainContribution = zero;
 							Color shiftedContribution = zero;
 							float weight = 0.f;
 
@@ -386,7 +393,7 @@ namespace embree
 								if (shiftedPath.connectionState == PATH_CONNECTED) {
 									// Follow the base path. All relevant vertices are shared. 
 									float shiftedBsdfPdf = mainBsdfPdf;
-									float shiftedDRecPdf = ls.wi.pdf;
+									float shiftedDRecPdf = baseLs.wi.pdf;
 									Color shiftedBsdfValue = mainBSDFValue;
 									Color shiftedEmitterRadiance = mainEmitterRadiance;
 									float jacobian = 1.f;
@@ -409,7 +416,7 @@ namespace embree
 									// Sample the BSDF.
 									//Float shiftedBsdfPdf = (emitter->isOnSurface() && dRec.measure == ESolidAngle && mainEmitterVisible) ? mainBSDF->pdf(bRec) : 0; // The BSDF sampler can not sample occluded path segments.
 									float shiftedBsdfPdf = mainEmitterVisible ? baseBRDFs.pdf(wo, basePath.lastDG, incomingDirection, directLightingBRDFTypes) : 0.f;
-									float shiftedDRecPdf = ls.wi.pdf;
+									float shiftedDRecPdf = baseLs.wi.pdf;
 									Color shiftedBsdfValue = baseBRDFs.eval(wo, basePath.lastDG, incomingDirection, directLightingBRDFTypes);
 									Color shiftedEmitterRadiance = mainEmitterRadiance;
 									float jacobian = 1.f;
@@ -440,40 +447,62 @@ namespace embree
 									const VertexType shiftedVertexType = getVertexType(shiftedBRDFs, shiftedPath.lastDG, shiftThreshold, brdfTypeToTest);
 
 									if (mainAtPointLight || (mainVertexType == VERTEX_TYPE_DIFFUSE && shiftedVertexType == VERTEX_TYPE_DIFFUSE)) {
-										/*
 										// Get emitter radiance.
-										DirectSamplingRecord shiftedDRec(shifted.rRec.its);
-										std::pair<Spectrum, bool> emitterTuple = m_scene->sampleEmitterDirectVisible(shiftedDRec, lightSample);
-										bool shiftedEmitterVisible = emitterTuple.second;
+										//DirectSamplingRecord shiftedDRec(shifted.rRec.its);
+										//std::pair<Spectrum, bool> emitterTuple = m_scene->sampleEmitterDirectVisible(shiftedDRec, lightSample);
+										//bool shiftedEmitterVisible = emitterTuple.second;
+										LightSample shiftedLs;
+										Color shiftedBrdf = zero;
+										shiftedLs.L = scene->allLights[i]->sample(shiftedPath.lastDG, shiftedLs, state.sample->getVec2f(lightSampleID));
 
-										Spectrum shiftedEmitterRadiance = emitterTuple.first * shiftedDRec.pdf;
-										Float shiftedDRecPdf = shiftedDRec.pdf;
+										if (shiftedLs.L != Color(zero) && shiftedLs.wi.pdf > 0.f) {
+											shiftedBrdf = baseBRDFs.eval(wo, shiftedPath.lastDG, shiftedLs.wi, directLightingBRDFTypes);
+										}
+
+										/*! Test for shadows. */
+										Ray shiftedShadowRay(shiftedPath.lastDG.P, shiftedLs.wi, shiftedPath.lastDG.error*epsilon, tMaxShadowRay - shiftedPath.lastDG.error*epsilon, shiftedPath.lastRay.time, shiftedPath.lastDG.shadowMask);
+										rtcOccluded(scene->scene, (RTCRay&)shiftedShadowRay);
+										state.numRays++;
+										const bool shiftedEmitterVisible = !shiftedShadowRay;
+
+										//Spectrum shiftedEmitterRadiance = emitterTuple.first * shiftedDRec.pdf;
+										//Float shiftedDRecPdf = shiftedDRec.pdf;
+										const Color shiftedEmitterRadiance = shiftedLs.L;
+										const float shiftedDRecPdf = shiftedLs.wi.pdf;
 
 										// Sample the BSDF.
-										Float shiftedDistanceSquared = (dRec.p - shifted.rRec.its.p).lengthSquared();
-										Vector emitterDirection = (dRec.p - shifted.rRec.its.p) / sqrt(shiftedDistanceSquared);
-										Float shiftedOpposingCosine = -dot(dRec.n, emitterDirection);
+										//float shiftedDistanceSquared = (dRec.p - shifted.rRec.its.p).lengthSquared();
+										//Vector emitterDirection = (dRec.p - shifted.rRec.its.p) / sqrt(shiftedDistanceSquared);
+										//Float shiftedOpposingCosine = -dot(dRec.n, emitterDirection);
 
-										BSDFSamplingRecord bRec(shifted.rRec.its, shifted.rRec.its.toLocal(emitterDirection), ERadiance);
+										const float shiftedDistanceSquared = lengthSquared(shiftedLs.p - shiftedPath.lastDG.P);
+										const Vector3f emitterDirection = (shiftedLs.p - shiftedPath.lastDG.P) / sqrt(mainDistanceSquared);
+										const float shiftedOpposingCosine = dot(shiftedLs.n, emitterDirection);
+
+
+										//BSDFSamplingRecord bRec(shifted.rRec.its, shifted.rRec.its.toLocal(emitterDirection), ERadiance);
 
 										// Strict normals check, to make the output match with bidirectional methods when normal maps are present.
-										if (m_config->m_strictNormals && dot(shifted.rRec.its.geoFrame.n, emitterDirection) * Frame::cosTheta(bRec.wo) < 0) {
-											// Invalid, non-sampleable offset path.
-											shiftSuccessful = false;
-										}
-										else {
-											Spectrum shiftedBsdfValue = shiftedBSDF->eval(bRec);
-											Float shiftedBsdfPdf = (emitter->isOnSurface() && dRec.measure == ESolidAngle && shiftedEmitterVisible) ? shiftedBSDF->pdf(bRec) : 0;
-											Float jacobian = std::abs(shiftedOpposingCosine * mainDistanceSquared) / (Epsilon + std::abs(mainOpposingCosine * shiftedDistanceSquared));
+										//if (m_config->m_strictNormals && dot(shifted.rRec.its.geoFrame.n, emitterDirection) * Frame::cosTheta(bRec.wo) < 0) {
+										//	// Invalid, non-sampleable offset path.
+										//	shiftSuccessful = false;
+										//}
+										//else
+										{
+											//Spectrum shiftedBsdfValue = shiftedBSDF->eval(bRec);
+											//Float shiftedBsdfPdf = (emitter->isOnSurface() && dRec.measure == ESolidAngle && shiftedEmitterVisible) ? shiftedBSDF->pdf(bRec) : 0;
+											//Float jacobian = std::abs(shiftedOpposingCosine * mainDistanceSquared) / (Epsilon + std::abs(mainOpposingCosine * shiftedDistanceSquared));
+											const Color shiftedBsdfValue = shiftedBrdf;
+											const float shiftedBsdfPdf = shiftedEmitterVisible ? shiftedBRDFs.pdf(wo, basePath.lastDG, baseLs.wi, directLightingBRDFTypes) : 0.f;
+											const float jacobian = std::abs(shiftedOpposingCosine * mainDistanceSquared) / (D_EPSILON + std::abs(mainOpposingCosine * shiftedDistanceSquared));
 
 											// Power heuristic between light sample from base, BSDF sample from base, light sample from offset, BSDF sample from offset.
-											Float shiftedWeightDenominator = (jacobian * shifted.pdf) * (jacobian * shifted.pdf) * ((shiftedDRecPdf * shiftedDRecPdf) + (shiftedBsdfPdf * shiftedBsdfPdf));
+											const float shiftedWeightDenominator = (jacobian * shiftedPath.pdf) * (jacobian * shiftedPath.pdf) * ((shiftedDRecPdf * shiftedDRecPdf) + (shiftedBsdfPdf * shiftedBsdfPdf));
 											weight = mainWeightNumerator / (D_EPSILON + shiftedWeightDenominator + mainWeightDenominator);
 
-											mainContribution = main.throughput * (mainBSDFValue * mainEmitterRadiance);
-											shiftedContribution = jacobian * shifted.throughput * (shiftedBsdfValue * shiftedEmitterRadiance);
+											mainContribution = basePath.throughput * (mainBSDFValue * mainEmitterRadiance);
+											shiftedContribution = jacobian * shiftedPath.throughput * (shiftedBsdfValue * shiftedEmitterRadiance);
 										}
-										*/
 									}
 								}
 							} // if (shiftSuccessful) 
@@ -482,7 +511,7 @@ namespace embree
 								// The offset path cannot be generated; Set offset PDF and offset throughput to zero. This is what remains.
 
 								// Power heuristic between light sample from base, BSDF sample from base, light sample from offset, BSDF sample from offset. (Offset path has zero PDF)
-								float shiftedWeightDenominator = 0.f;
+								const float shiftedWeightDenominator = 0.f;
 								weight = mainWeightNumerator / (D_EPSILON + mainWeightDenominator);
 
 								mainContribution = basePath.throughput * (mainBSDFValue * mainEmitterRadiance);
@@ -500,6 +529,10 @@ namespace embree
 					} // Stuff from Mitsuba "translated" into our framework
 				} // for (size_t i = 0; i < scene->allLights.size(); i++)
 			} // if (useDirectLighting)
+
+
+			// Lev: for testing
+			break;
 
 			// Stop if the next ray is going to exceed the max allowed depth
 			if (basePath.depth >= maxDepth - 1) break;
@@ -571,6 +604,13 @@ namespace embree
 		};
 
 		evaluate(basePath, offsetPaths, 4, outVeryDirect, scene, state);
+
+		// Output results.
+		outThroughput = basePath.radiance;
+		for (int i = 0; i < 4; ++i) {
+			outGradients[i] = offsetPaths[i].gradient;
+			outShiftedThroughputs[i] = offsetPaths[i].radiance;
+		}
 	}
 
 }
