@@ -244,6 +244,10 @@ namespace embree
 			delete[] data; data = NULL;
 		}
 
+		__forceinline size_t isValid(size_t x, size_t y) const {
+			return  (x >= 0 && y >= 0 && x < width && y < height);
+		}
+
 		/*! return the width of the swapchain */
 		__forceinline size_t getWidth() const { return width; }
 
@@ -255,22 +259,30 @@ namespace embree
 
 		/*! clear buffer */
 		__forceinline void clear(size_t x, size_t y) {
+			if (!isValid(x, y))	return;
+
 			data[y*width + x] = Vec4f(0.0f, 0.0f, 0.0f, 1E-10f);
 		}
 
 		/*! set pixel */
 		__forceinline void set(size_t x, size_t y, const Vec4f& c) {
+			if (!isValid(x, y))	return;
+
 			data[y*width + x] = c;
 		}
 
 		/*! accumulate pixel */
 		__forceinline void add(size_t x, size_t y, const Vec4f& c) {
+			if (!isValid(x, y))	return;
+
 			data[y*width + x] += c;
 		}
 
 		/*! update pixel */
 		__forceinline Color update(size_t x, size_t y, const Color& c, const float weight, bool accu)
 		{
+			if (!isValid(x, y))	return zero;
+
 			if (accu) {
 				const Vec4f cur = data[y*width + x];
 				const Vec4f next = cur + Vec4f(c.r, c.g, c.b, weight);
@@ -287,6 +299,8 @@ namespace embree
 		/*! read pixel */
 		__forceinline const Color get(size_t x, size_t y) const
 		{
+			if (!isValid(x, y))	return zero;
+
 			const Vec4f& c = data[y*width + x];
 			const float norm = rcp(c.w);
 			return Color(c.x, c.y, c.z)*norm;

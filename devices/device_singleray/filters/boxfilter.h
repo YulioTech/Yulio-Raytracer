@@ -21,22 +21,25 @@
 
 namespace embree
 {
-  /*! Implements a simple box filter. */
-  class BoxFilter : public Filter
-  {
-  public:
+	/*! Implements a simple box filter. */
+	class BoxFilter : public Filter
+	{
+	public:
 
-    /*! Constructs a box filter of specified half width. */
-    BoxFilter (const float halfWidth = 0.5f)
-      : Filter(1.414213562f * halfWidth, 2.0f * halfWidth, 2.0f * halfWidth, uint32(ceil(halfWidth - 0.5f))), halfWidth(halfWidth) {}
+		/*! Constructs a box filter of specified half width. */
+		BoxFilter(const float halfWidth = 0.5f)
+			: Filter(1.414213562f * halfWidth, 2.0f * halfWidth, 2.0f * halfWidth, uint32(ceil(halfWidth - 0.5f))), halfWidth(halfWidth) {
+			init();
+		}
 
-    float eval(const Vec2f distanceToCenter) const {
-      if (fabsf(distanceToCenter.x) <= halfWidth && fabsf(distanceToCenter.y) <= halfWidth)  return 1.0f;
-      else return 0.0f;
-    }
-  private:
-    float halfWidth; //!< Half the width of the box filter
-  };
+		float eval(const Vec2f distanceToCenter) const {
+			if (fabsf(distanceToCenter.x) <= halfWidth && fabsf(distanceToCenter.y) <= halfWidth)  return 1.0f;
+			else return 0.0f;
+		}
+
+	private:
+		float halfWidth; //!< Half the width of the box filter
+	};
 }
 
 #endif

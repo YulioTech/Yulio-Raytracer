@@ -48,6 +48,13 @@ namespace embree
 			Ref<ToneMapper> toneMapper;    //!< Tonemapper to use.
 			Ref<FrameBuffer> framebuffer;  //!< Framebuffer to render into
 			Ref<SwapChain> swapchain;	   //!< Swapchain to render into
+
+			static const size_t BUFFER_THROUGHPUT = 0;  ///< Buffer index for the noisy color image.
+			static const size_t BUFFER_DX = 1;          ///< Buffer index for the X gradients.
+			static const size_t BUFFER_DY = 2;          ///< Buffer index for the Y gradients.
+			static const size_t BUFFER_VERY_DIRECT = 3; ///< Buffer index for very direct light.
+			Ref<AccuBuffer> buffers[4]; // Accumulation buffers for intermediate results
+
 			int accumulate;                //!< Accumulation mode
 			int iteration;
 

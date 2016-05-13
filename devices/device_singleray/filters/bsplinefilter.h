@@ -21,26 +21,26 @@
 
 namespace embree
 {
-  /*! Implements a B-Spline filter. */
-  class BSplineFilter : public Filter
-  {
-  public:
-    BSplineFilter () : Filter(2.0f,4.0f,4.0f,2) { init(); }
+	/*! Implements a B-Spline filter. */
+	class BSplineFilter : public Filter
+	{
+	public:
+		BSplineFilter() : Filter(2.0f, 4.0f, 4.0f, 2) { init(); }
 
-    float eval(const Vec2f distanceToCenter) const
-    {
-      float d = length(distanceToCenter);
-      if (d > 2.0f) return 0.0f;
-      else if (d < 1.0f) {
-        float t = 1.0f - d;
-        return ((((-3.0f*t)+3.0f)*t+3.0f)*t+1.0f)/6.0f;
-      }
-      else {
-        float t = 2.0f - d;
-        return t*t*t/6.0f;
-      }
-    }
-  };
+		float eval(const Vec2f distanceToCenter) const
+		{
+			float d = length(distanceToCenter);
+			if (d > 2.0f) return 0.0f;
+			else if (d < 1.0f) {
+				float t = 1.0f - d;
+				return ((((-3.0f*t) + 3.0f)*t + 3.0f)*t + 1.0f) / 6.0f;
+			}
+			else {
+				float t = 2.0f - d;
+				return t*t*t / 6.0f;
+			}
+		}
+	};
 }
 
 #endif
