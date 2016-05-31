@@ -341,7 +341,13 @@ namespace embree {
 			}
 			else if (materialType == "ThinDielectric") {
 				// ToDo: the handling of transmission needs further investigation!
-				g_device->rtSetFloat3(material, "transmission", 1.f - transmissionColor.r, 1.f - transmissionColor.g, 1.f - transmissionColor.b);
+				if (textureFilePath != "") {
+					g_device->rtSetTexture(material, "Kd", rtLoadTexture(FileName(textureFilePath)));
+				}
+				else {
+					g_device->rtSetFloat3(material, "transmission", diffuseColor.r * (1.f - transmissionColor.r), diffuseColor.g * (1.f - transmissionColor.g), diffuseColor.b * (1.f - transmissionColor.b));
+				}
+				//g_device->rtSetFloat3(material, "transmission", 1.f - transmissionColor.r, 1.f - transmissionColor.g, 1.f - transmissionColor.b);
 				//g_device->rtSetFloat3(material, "transmission", transmissionColor.r, transmissionColor.g, transmissionColor.b);
 				g_device->rtSetFloat1(material, "eta", 1.4f);
 				g_device->rtSetFloat1(material, "thickness", 1.f);
@@ -423,7 +429,7 @@ namespace embree {
 					g_device->rtSetFloat3(stereoCubeCamera, "up", camUp.x, camUp.y, camUp.z);
 					g_device->rtSetBool1(stereoCubeCamera, "toeIn", toeIn);
 					g_device->rtSetFloat1(stereoCubeCamera, "sceneScale", sceneScale);
-					const auto eyeSeparation = 6.35f * 0.393701f;
+					const auto eyeSeparation = 6.35f * 0.393701f; // 6.35 cm converted to inches
 					g_device->rtSetFloat1(stereoCubeCamera, "eyeSeparation", eyeSeparation);
 					const auto zeroParallaxDistance = eyeSeparation * 30.f;
 					g_device->rtSetFloat1(stereoCubeCamera, "zeroParallaxDistance", zeroParallaxDistance);

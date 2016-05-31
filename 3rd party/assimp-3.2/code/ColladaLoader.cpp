@@ -1359,13 +1359,9 @@ void ColladaLoader::FillMaterials( const ColladaParser& pParser, aiScene* /*pSce
         // specification here (1.0 transparency => completly opaque)...
         // therefore, we let the opportunity for the user to manually invert
  
-		// For testing
-		//if (effect.mTransparent.a < 0.05883 && effect.mTransparent.a > 0.05881) {
-		//	int n = 0;
-		//}
-
 		// Lev: handle transparency according to the COLLADA v1.5 spec
-        if (effect.mTransparency >= 0.f && effect.mTransparency <= 1.f) {
+        if (effect.mHasTransparency
+			&& effect.mTransparency >= 0.f && effect.mTransparency <= 1.f) {
 			switch (effect.mBlendMode) {
 			case Collada::Effect::BlendMode::A_ONE:
 				effect.mTransparent.r = effect.mTransparent.a * effect.mTransparency;
@@ -1376,6 +1372,9 @@ void ColladaLoader::FillMaterials( const ColladaParser& pParser, aiScene* /*pSce
 				break;
 
 			case Collada::Effect::BlendMode::RGB_ZERO:
+			// If blending mode is not present, assume RGB_ZERO
+			case Collada::Effect::BlendMode::Undefined:
+			default:
 			{
 				const auto luminance = (effect.mTransparent.r * .212671f) +
 					(effect.mTransparent.g * .715160f) +
@@ -1407,10 +1406,6 @@ void ColladaLoader::FillMaterials( const ColladaParser& pParser, aiScene* /*pSce
 				effect.mTransparent.a = luminance * effect.mTransparency;
 				effect.mTransparency = luminance * effect.mTransparency;
 			}
-				break;
-
-			case Collada::Effect::BlendMode::Undefined:
-			default:
 				break;
 			}
 

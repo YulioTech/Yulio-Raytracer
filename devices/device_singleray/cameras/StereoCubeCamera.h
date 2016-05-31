@@ -85,11 +85,11 @@ namespace embree
 					case 3:
 					{
 						const Vector3f xDir = normalize(pixel.x * pixel2world.l.vx + .5f * pixel2world.l.vy + pixel2world.l.vz);
-						theta = acosf(dot(xDir, xyzStraight)) * sign(pixel.x - .5f);
+						theta = acosf( clamp(dot(xDir, xyzStraight), -1.f, 1.f) ) * sign(pixel.x - .5f);
 						//auto xAngle = rad2deg(theta);
 
 						const Vector3f yDir = normalize(.5f * pixel2world.l.vx + yPixel * pixel2world.l.vy + pixel2world.l.vz);
-						const auto yAngle = rad2deg(acosf(dot(yDir, xyzStraight))) * sign(yPixel - .5f);
+						const auto yAngle = rad2deg(acosf( clamp(dot(yDir, xyzStraight), -1.f, 1.f) )) * sign(yPixel - .5f);
 						//phi = acosf(dot(yDir, yStraight)) * sign(yPixel - .5f);
 
 						absoluteVerticalAngle = fabsf(yAngle);
@@ -109,10 +109,9 @@ namespace embree
 						static const Vector3f xyUp = Vector3f(0.f, -1.f, 0.f);
 
 						//auto xyAngle = rad2deg(acosf(dot(xyDirNorm, xyUp))) * sign(pixel.x - .5f);
-						theta = acosf(dot(xyDirNorm, xyUp)) * sign(pixel.x - .5f);
-
+						theta = acosf( clamp(dot(xyDirNorm, xyUp), -1.f, 1.f) ) * sign(pixel.x - .5f);
 						const Vector3f xyzDir = normalize(pixel.x * pixel2world.l.vx + yPixel * pixel2world.l.vy + pixel2world.l.vz);
-						const auto xyzAngle = rad2deg(acosf(dot(xyzDir, xyzStraight)));
+						const auto xyzAngle = rad2deg(acosf( clamp(dot(xyzDir, xyzStraight), -1.f, 1.f) ));
 
 						absoluteVerticalAngle = 90.f - fabsf(xyzAngle);
 					}
@@ -131,10 +130,9 @@ namespace embree
 						static const Vector3f xyUp = Vector3f(0.f, 1.f, 0.f);
 
 						//auto xyAngle = rad2deg(acosf(dot(xyDirNorm, xyUp))) * sign(pixel.x - .5f);
-						theta = acosf(dot(xyDirNorm, xyUp)) * sign(pixel.x - .5f);
-
+						theta = acosf( clamp(dot(xyDirNorm, xyUp), -1.f, 1.f) ) * sign(pixel.x - .5f);
 						const Vector3f xyzDir = normalize(pixel.x * pixel2world.l.vx + yPixel * pixel2world.l.vy + pixel2world.l.vz);
-						const auto xyzAngle = rad2deg(acosf(dot(xyzDir, xyzStraight)));
+						const auto xyzAngle = rad2deg(acosf( clamp(dot(xyzDir, xyzStraight), -1.f, 1.f) ));
 
 						absoluteVerticalAngle = 90.f - fabsf(xyzAngle);
 					}
