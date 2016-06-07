@@ -122,15 +122,6 @@ namespace embree
 			std::vector<Vec3f> directVector(pixelCount);
 			std::vector<Vec3f> reconstructionVector(pixelCount);
 
-			//std::transform(reinterpret_cast<Vec4f *>(buffers[BUFFER_THROUGHPUT]->getData()), reinterpret_cast<Vec4f *>(buffers[BUFFER_THROUGHPUT]->getData()) + pixelCount,
-			//	throughputVector.begin(), [](const Vec4f &src)  { return Vec3f(src.x, src.y, src.z); });
-			//std::transform(reinterpret_cast<Vec4f *>(buffers[BUFFER_DX]->getData()), reinterpret_cast<Vec4f *>(buffers[BUFFER_DX]->getData()) + pixelCount,
-			//	dxVector.begin(), [](Vec4f src) -> Vec3f { return Vec3f(src.x, src.y, src.z); });
-			//std::transform(reinterpret_cast<Vec4f *>(buffers[BUFFER_DY]->getData()), reinterpret_cast<Vec4f *>(buffers[BUFFER_DY]->getData()) + pixelCount,
-			//	dyVector.begin(), [](Vec4f src) -> Vec3f { return Vec3f(src.x, src.y, src.z); });
-			//std::transform(reinterpret_cast<Vec4f *>(buffers[BUFFER_VERY_DIRECT]->getData()), reinterpret_cast<Vec4f *>(buffers[BUFFER_VERY_DIRECT]->getData()) + pixelCount,
-			//	directVector.begin(), [](Vec4f src) -> Vec3f { return Vec3f(src.x, src.y, src.z); });
-
 			Color c = zero;
 			for (int y = 0, p = 0; y < height; ++y) {
 				for (int x = 0; x < width; ++x, ++p) {
@@ -169,21 +160,15 @@ namespace embree
 				const size_t _y = swapchain->raster2buffer(y);
 				for (int x = 0; x < width; ++x, ++p) {
 					Color c(reconstructionVector[p].x, reconstructionVector[p].y, reconstructionVector[p].z);
-
-					//Color c(throughputVector[p].x, throughputVector[p].y, throughputVector[p].z);
-					//Color c(dxVector[p].x, dxVector[p].y, dxVector[p].z);
-					//Color c(dyVector[p].x, dyVector[p].y, dyVector[p].z);
-					//Color c(directVector[p].x, directVector[p].y, directVector[p].z);
-					//Color c = buffers[BUFFER_THROUGHPUT]->get(x, y);
-					//Color c = buffers[BUFFER_DX]->get(x, y);
-					//framebuffer->set(x, y, c);
+					// Lev: GPT has a somewhat greater energy loss (i.e. the throughput falloff is faster) than the vanilla PT
+					// when a throughput threshold value is used, so we compensate here with a fudge factor (determined empirically by eyeballing).
+					//c *= 1.2f;
 
 					const Color L0 = swapchain->update(x, _y, c, 1.f, false);
 					const Color L1 = toneMapper->eval(L0, x, y, swapchain);
 					framebuffer->set(x, _y, L1);
 				}
 			}
-
 		}
 
 #endif //RECONSTRUCT
@@ -280,36 +265,36 @@ namespace embree
 							scene, state);
 					}
 
-					//const Color L0 = swapchain->update(x, _y, (8 * centralVeryDirect) + (2 * centralThroughput), spp * 4, accumulate);
-					//const Color L1 = toneMapper->eval(L0, x, y, swapchain);
-					//framebuffer->set(x, _y, L0);
+					static const int RIGHT = 0;
+					static const int BOTTOM = 1;
+					static const int LEFT = 2;
+					static const int TOP = 3;
 
+					const Vec2f center_pixel(x, y);
+					const Vec2f right_pixel = center_pixel + pixelShift[RIGHT];
+					const Vec2f bottom_pixel = center_pixel + pixelShift[BOTTOM];
+					const Vec2f left_pixel = center_pixel + pixelShift[LEFT];
+					const Vec2f top_pixel = center_pixel + pixelShift[TOP];
+
+#if !defined(RECONSTRUCT)
+					//swapchain->update(left_pixel.x, left_pixel.y, 2 * shiftedThroughputs[LEFT], 1.f * spp, accumulate);		// Negative x throughput.
+					//swapchain->update(right_pixel.x, right_pixel.y, 2 * shiftedThroughputs[RIGHT], 1.f * spp, accumulate);		// Positive x throughput.
+					//swapchain->update(top_pixel.x, top_pixel.y, 2 * shiftedThroughputs[TOP], 1.f * spp, accumulate);			// Negative y throughput.
+					//swapchain->update(bottom_pixel.x, bottom_pixel.y, 2 * shiftedThroughputs[BOTTOM], 1.f * spp, accumulate);	// Positive y throughput.
+					//const Color L0 = swapchain->update(x, _y, (8 * centralVeryDirect) + (2 * centralThroughput), .25f * spp, accumulate);
+					const Color L0 = swapchain->update(x, _y, shiftedThroughputs[RIGHT], 1.f * spp, accumulate);
+					//const Color L0 = swapchain->update(x, _y, centralThroughput, 1.f * spp, accumulate);
+					const Color L1 = toneMapper->eval(L0, x, y, swapchain);
+					framebuffer->set(x, _y, L1);
+#else
 					// Accumulate the results
 					{
 						static const bool accumulate = true;
 
-						static const int RIGHT = 0;
-						static const int BOTTOM = 1;
-						static const int LEFT = 2;
-						static const int TOP = 3;
-						
-						const Vec2f center_pixel(x, y);
-						const Vec2f right_pixel = center_pixel + pixelShift[RIGHT];
-						const Vec2f bottom_pixel = center_pixel + pixelShift[BOTTOM];
-						const Vec2f left_pixel = center_pixel + pixelShift[LEFT];
-						const Vec2f top_pixel = center_pixel + pixelShift[TOP];
-
 						// Actual throughputs, with MIS between central and neighbor pixels for all neighbors.
 						// This can be replaced with a standard throughput sample without much loss of quality in most cases.
 						{
-							//block->put(center_pixel, (2 * centralThroughput), 4.0f, 4.0f, BUFFER_THROUGHPUT); // Central throughput.
-
-							//block->put(left_pixel, (2 * shiftedThroughputs[LEFT]), 1.0f, 1.0f, BUFFER_THROUGHPUT);     // Negative x throughput.
-							//block->put(right_pixel, (2 * shiftedThroughputs[RIGHT]), 1.0f, 1.0f, BUFFER_THROUGHPUT);   // Positive x throughput.
-							//block->put(top_pixel, (2 * shiftedThroughputs[TOP]), 1.0f, 1.0f, BUFFER_THROUGHPUT);       // Negative y throughput.
-							//block->put(bottom_pixel, (2 * shiftedThroughputs[BOTTOM]), 1.0f, 1.0f, BUFFER_THROUGHPUT); // Positive y throughput.
-
-							buffers[BUFFER_THROUGHPUT]->update(center_pixel.x, center_pixel.y, 2 * centralThroughput, 4.f * spp, accumulate);			// Central throughput.
+							buffers[BUFFER_THROUGHPUT]->update(center_pixel.x, center_pixel.y, 2 * centralThroughput, .25f * spp, accumulate);			// Central throughput (4 times the weight of neighbors).
 
 							buffers[BUFFER_THROUGHPUT]->update(left_pixel.x, left_pixel.y, 2 * shiftedThroughputs[LEFT], 1.f * spp, accumulate);		// Negative x throughput.
 							buffers[BUFFER_THROUGHPUT]->update(right_pixel.x, right_pixel.y, 2 * shiftedThroughputs[RIGHT], 1.f * spp, accumulate);		// Positive x throughput.
@@ -319,37 +304,18 @@ namespace embree
 
 						// Gradients.
 						{
-							//block->put(left_pixel, -(2 * gradients[LEFT]), 1.0f, 1.0f, BUFFER_DX);    // Negative x gradient.
-							//block->put(center_pixel, (2 * gradients[RIGHT]), 1.0f, 1.0f, BUFFER_DX);  // Positive x gradient.
-							//block->put(top_pixel, -(2 * gradients[TOP]), 1.0f, 1.0f, BUFFER_DY);      // Negative y gradient.
-							//block->put(center_pixel, (2 * gradients[BOTTOM]), 1.0f, 1.0f, BUFFER_DY); // Positive y gradient.
-
-#if 1
 							buffers[BUFFER_DX]->update(left_pixel.x, left_pixel.y, -2 * gradients[LEFT], 1.f * spp, accumulate);		// Negative x gradient.
-							buffers[BUFFER_DX]->update(center_pixel.x, center_pixel.y, 2 * gradients[RIGHT], 1.f * spp, accumulate);		// Positive x gradient.
+							buffers[BUFFER_DX]->update(center_pixel.x, center_pixel.y, 2 * gradients[RIGHT], 1.f * spp, accumulate);	// Positive x gradient.
 							buffers[BUFFER_DY]->update(top_pixel.x, top_pixel.y, -2 * gradients[TOP], 1.f * spp, accumulate);			// Negative y gradient.
 							buffers[BUFFER_DY]->update(center_pixel.x, center_pixel.y, 2 * gradients[BOTTOM], 1.f * spp, accumulate);	// Positive y gradient.
-#else
-							// Re-balance gradients around the center
-							buffers[BUFFER_DX]->update(left_pixel.x, left_pixel.y, -2 * gradients[LEFT], 1.f * spp, accumulate);		// Negative x gradient.
-							buffers[BUFFER_DX]->update(center_pixel.x, center_pixel.y, -2 * gradients[LEFT], 1.f * spp, accumulate);		// Negative x gradient.
-							buffers[BUFFER_DX]->update(center_pixel.x, center_pixel.y, 2 * gradients[RIGHT], 1.f * spp, accumulate);		// Positive x gradient.
-							buffers[BUFFER_DX]->update(right_pixel.x, right_pixel.y, 2 * gradients[RIGHT], 1.f * spp, accumulate);		// Positive x gradient.
-
-							buffers[BUFFER_DY]->update(top_pixel.x, top_pixel.y, -2 * gradients[TOP], 1.f * spp, accumulate);			// Negative y gradient.
-							buffers[BUFFER_DY]->update(center_pixel.x, center_pixel.y, -2 * gradients[TOP], 1.f * spp, accumulate);		// Negative y gradient.
-							buffers[BUFFER_DY]->update(center_pixel.x, center_pixel.y, 2 * gradients[BOTTOM], 1.f * spp, accumulate);	// Positive y gradient.
-							buffers[BUFFER_DY]->update(bottom_pixel.x, bottom_pixel.y, 2 * gradients[BOTTOM], 1.f * spp, accumulate);	// Positive y gradient.
-#endif
 						}
 
 						// Very direct.
 						{
-							//block->put(center_pixel, centralVeryDirect, 1.0f, 1.0f, BUFFER_VERY_DIRECT);
-
 							buffers[BUFFER_VERY_DIRECT]->update(center_pixel.x, center_pixel.y, centralVeryDirect, 1.f * spp, accumulate);
 						}
 					}
+#endif //RECONSTRUCT
 				}
 			}
 

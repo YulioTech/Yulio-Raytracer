@@ -44,6 +44,14 @@ namespace embree
       return norm2 * pow(abs(cosThetaH), n);
     }
 
+	__forceinline float roughness(const Vector3f& wh) const {
+		const float cosPhiH = dot(wh, dx);
+		const float sinPhiH = dot(wh, dy);
+		const float R = sqr(cosPhiH) + sqr(sinPhiH);
+		const float n = (nx*sqr(cosPhiH) + ny*sqr(sinPhiH))*rcp(R);
+		return rcp(n);
+	}
+
     /*! Samples the distribution. \param s is the sample location
      *  provided by the caller. */
     __forceinline Sample3f sample(const Vec2f& s) const

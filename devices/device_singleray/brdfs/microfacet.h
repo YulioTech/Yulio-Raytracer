@@ -66,7 +66,12 @@ namespace embree
 
 		float pdf(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
 			const Vector3f wh = normalize(wo + wi);
-			return distribution.pdf(wh)*rcp(4.0f*abs(dot(wo, wh)));
+			return distribution.pdf(wh)*rcp(4.f*abs(dot(wo, wh)));
+		}
+
+		float roughness(const DifferentialGeometry &dg) const override {
+			// Lev: ToDo - need to provide a halfway vector for a proper roughness estimation
+			return distribution.roughness(dg.wi);
 		}
 
 	private:

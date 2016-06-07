@@ -13,8 +13,23 @@ namespace embree
 
 	class GPTIntegrator : public Integrator
 	{
+		/// Result of a reconnection shift.
+		struct ReconnectionShiftResult {
+			bool success = false;   ///< Whether the shift succeeded.
+			float jacobian = 0.f; ///< Local Jacobian determinant of the shift.
+			Vector3f wo = zero;     ///< World space outgoing vector for the shift.
+		};
+
+		/// Result of a half-vector duplication shift.
+		struct HalfVectorShiftResult {
+			bool success;   ///< Whether the shift succeeded.
+			float jacobian; ///< Local Jacobian determinant of the shift.
+			Vector3f wo;     ///< Tangent space outgoing vector for the shift.
+		};
+
 		/// Classification of vertices into diffuse and glossy.
 		enum VertexType {
+			VERTEX_TYPE_UNDEFINED,
 			VERTEX_TYPE_GLOSSY,     ///< "Specular" vertex that requires the half-vector duplication shift.
 			VERTEX_TYPE_DIFFUSE     ///< "Non-specular" vertex that is rough enough for the reconnection shift.
 		};
@@ -38,7 +53,14 @@ namespace embree
 			/*! Extends a light path. */
 			__forceinline LightPath extended(const Ray& nextRay, const Medium& nextMedium, const Color& weight, float invBrdfPdf, const bool ignoreVL) const {
 				LightPath lp(nextRay, nextMedium, depth + 1, throughput*weight, ignoreVL, unbent && (nextRay.dir == lastRay.dir));
-				lp.misWeight = lp.throughput * invBrdfPdf;
+				lp.lastDG = lastDG;
+				lp.radiance = radiance;
+				lp.gradient = gradient;
+				lp.pdf = pdf;
+				lp.eta = eta;
+				lp.alive = alive;
+				lp.connectionState = connectionState;
+				lp.backFacing = backFacing;
 				return lp;
 			}
 
@@ -55,12 +77,15 @@ namespace embree
 				gradient += color;
 			}
 
+			__forceinline bool isValid() const {
+				return lastRay.tfar != std::numeric_limits<float>::infinity();
+			}
+
 		public:
 			Ray lastRay;                 /*! Last ray in the path. */
 			DifferentialGeometry lastDG; /*! Last differential geometry hit by the ray of the path. */
 			Medium lastMedium;           /*! Medium the last ray travels inside. */
 			uint32 depth = 0;                /*! Recursion depth of path. */
-			Color misWeight = one;	/*! Inverse BRDF PDF for the last sample multiplied by throughput */
 			Color throughput = zero;            /*! Determines the fraction of radiance that reaches the pixel along the path. */
 			Color radiance = zero;				/*! Radiance accumulated so far. */
 			Color gradient = zero;				/*! Gradient accumulated so far. */
@@ -97,16 +122,22 @@ namespace embree
 	private:
 		__forceinline VertexType getVertexTypeByRoughness(float roughness, float shiftThreshold) const;
 		__forceinline VertexType getVertexType(const CompositedBRDF &brdfs, const DifferentialGeometry &dg, float shiftThreshold, BRDFType bsdfType) const;
+		__forceinline VertexType getVertexType(const LightPath &path, float shiftThreshold, BRDFType bsdfType) const;
+		__forceinline ReconnectionShiftResult reconnectShift(const Ref<BackendScene> &scene, IntegratorState &state, Vector3f mainSourceVertex, Vector3f targetVertex, Vector3f shiftSourceVertex, Vector3f targetNormal, float time) const;
+		__forceinline ReconnectionShiftResult environmentShift(const Ref<BackendScene> &scene, IntegratorState &state, const Ray& mainRay, Vector3f shiftSourceVertex) const;
+		__forceinline HalfVectorShiftResult halfVectorShift(const Vector3f &mainWi, const Vector3f &mainWo, const DifferentialGeometry &mainDG, const Vector3f &shiftedWi, const DifferentialGeometry &shiftedDG, const BRDF *mainBrdf, const BRDF *shiftedBrdf) const;
 		void evaluate(LightPath &basePath, LightPath *shiftedPaths, int shiftedCount, Color &outVeryDirect, const Ref<BackendScene>& scene, IntegratorState& state);
 
 			/* Configuration. */
 	private:
 		size_t maxDepth;               //!< Maximal recursion depth (1=primary ray only)
+		size_t rrDepth;					   /* Depth to begin using russian roulette */
+		size_t minDepth = 1;			//!< Minimal recursion depth (has to be greater than 0 to avoid "empty" images)
 		float minContribution;         //!< Minimal contribution of a path to the pixel.
 		float epsilon;                 //!< Epsilon to avoid self intersections.
 		float tMaxShadowRay;			//!< Max length of a shadow ray (i.e. an actual ray used to test for occlusion, not just any secondary, aka "shadow", ray)
 		Ref<Image> backplate;          //!< High resolution background.
-		float shiftThreshold;			//!< Threshold value below which a BRDF at a currently evaluated vertex is considered Glossy (otherwise its' considered Diffuse)
+		float glossyShiftThreshold;			//!< Threshold value below which a BRDF at a currently evaluated vertex is considered Glossy (otherwise its' considered Diffuse)
 
 		/*! Random variables. */
 	private:

@@ -58,7 +58,10 @@ namespace embree
 		/*! Adds a new BRDF to the list of BRDFs */
 		__forceinline void add(const BRDF* brdf) {
 			assert(numBRDFs < maxComponents);
-			if (numBRDFs < maxComponents) BRDFs[numBRDFs++] = brdf;
+			if (numBRDFs < maxComponents) {
+				BRDFs[numBRDFs++] = brdf;
+				typeMask |= brdf->type;
+			}
 		}
 
 		/*! Returns the number of used BRDF components. */
@@ -85,22 +88,41 @@ namespace embree
 			return pdf;
 		}
 
-		/*! Determine if the composited BRDF contains a component of the specified type. */
-		bool has(const BRDFType &type) {
-
-			for (size_t i = 0; i < size(); i++) if (BRDFs[i]->type & type) return(true);
-			return(false);
-
+		/*! Get combined roughness for all BRDF components. */
+		float roughness(const DifferentialGeometry &dg, BRDFType type = ALL) const
+		{
+			float roughness = 1.f;
+			for (size_t i = 0; i < size(); i++)
+				if (BRDFs[i]->type & type) roughness *= BRDFs[i]->roughness(dg);
+			return roughness;
 		}
+
+		/*! Get combined ETA for all BRDF components. */
+		//float eta(BRDFType type = ALL) const
+		//{
+		//	float eta = 1.f;
+		//	for (size_t i = 0; i < size(); i++)
+		//		if (BRDFs[i]->type & type) eta *= BRDFs[i]->eta();
+		//	return eta;
+		//}
+
+		/*! Determine if the composited BRDF contains a component of the specified type. */
+		int has(const BRDFType &type) {
+			for (size_t i = 0; i < size(); i++) if (BRDFs[i]->type & type) return i;
+			return -1;
+		}
+
+		BRDFType type() { return (BRDFType)typeMask;  }
 
 		/*! Sample the composited BRDF. We are evaluating all BRDF
 		 *  components and then importance sampling one of them. */
 		Color sample(const Vector3f               & wo,          /*!< Direction light is reflected into.                    */
 			const DifferentialGeometry& dg,          /*!< Shade location on a surface to sample the BRDF at.    */
 			Sample3f                  & wi_o,        /*!< Returns sampled incoming light direction and PDF.     */
-			BRDFType                  & type_o,      /*!< Returns the type flags of samples component.          */
+			BRDFType                  & type_o,      /*!< Returns the type flags of the sampled component.          */
+			size_t                    & index_o,      /*!< Returns the index of the sampled component.          */
 			const Vec2f               & s,           /*!< Sample locations for BRDF are provided by the caller. */
-			float                       ss,          /*!< Sample to select the BRDF component.                  */
+			const float               ss,          /*!< Sample to select the BRDF component.                  */
 			const BRDFType            & type = ALL)  /*!< The type of BRDF components to consider.              */ const
 		{
 			/*! probability distribution to sample between BRDF components */
@@ -154,6 +176,7 @@ namespace embree
 			/*! return */
 			wi_o = Sample3f(samples[i].value, samples[i].pdf*f[i]);
 			type_o = types[i];
+			index_o = i;
 			return colors[i];
 		}
 
@@ -166,6 +189,7 @@ namespace embree
 		/*! BRDF list */
 		const BRDF* BRDFs[maxComponents]; //!< pointers to BRDF components
 		size_t numBRDFs;                  //!< number of stored BRDF components
+		uint32_t typeMask = 0;
 	};
 }
 

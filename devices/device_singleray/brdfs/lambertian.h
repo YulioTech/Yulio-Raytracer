@@ -33,7 +33,7 @@ namespace embree
 		__forceinline Lambertian(const Color& R, const BRDFType type = DIFFUSE_REFLECTION) : BRDF(type), R(R) {}
 
 		__forceinline Color eval(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
-			return R * (1.0f / float(pi)) * clamp(dot(wi, dg.Ns));
+			return R * float(one_over_pi) * clamp(dot(wi, dg.Ns));
 		}
 
 		Color sample(const Vector3f& wo, const DifferentialGeometry& dg, Sample3f& wi, const Vec2f& s) const {
@@ -44,7 +44,7 @@ namespace embree
 			return cosineSampleHemispherePDF(wi, dg.Ns);
 		}
 
-		float getRoughness(const DifferentialGeometry &dg) const {
+		float roughness(const DifferentialGeometry &dg) const override {
 			return std::numeric_limits<float>::infinity();
 		}
 
@@ -79,7 +79,7 @@ namespace embree
 			return cosineSampleHemispherePDF(wi, -N);
 		}
 
-		float getRoughness(const DifferentialGeometry &dg) const {
+		float roughness(const DifferentialGeometry &dg) const override {
 			return std::numeric_limits<float>::infinity();
 		}
 

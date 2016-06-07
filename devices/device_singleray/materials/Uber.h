@@ -46,9 +46,10 @@ namespace embree
 				opacity = 1.f - alpha;
 			}
 
-			//brdfs.add(NEW_BRDF(Lambertian)(diffuseColor * alpha));
+			// Lev: use the vanilla lambertian BRDF to make sure the weights (that are based on BRDF sampling PDFs) are properly calculated.
+			brdfs.add(NEW_BRDF(Lambertian)(diffuseColor * alpha));
 			/*! the dielectric layer that models the covered diffuse part */
-			brdfs.add(NEW_BRDF(DielectricLayer<Lambertian>)(one, 1.0f, eta, Lambertian(diffuseColor * alpha)));
+			//brdfs.add(NEW_BRDF(DielectricLayer<Lambertian>)(one, 1.0f, eta, Lambertian(diffuseColor * alpha)));
 
 			if (alpha < 1.f) {
 				//brdfs.add(NEW_BRDF(ThinDielectricTransmission)(1.f, 1.f, Color4(1.f - diffuseColor.a), 1.f));
@@ -59,16 +60,19 @@ namespace embree
 			if (roughness == 0.0f) {
 				brdfs.add(NEW_BRDF(DielectricReflection)(1.f, eta, alpha));
 			}
+			// Lev: microfacets don't play nice with the gradient-based PT, so we disable it for now.
+#if 0
 			/*! otherwise use the microfacet BRDF to model the rough surface */
 			else {
 				brdfs.add(NEW_BRDF(MicrofacetUber)(Color(alpha), FresnelDielectric(1.f, eta), PowerCosineDistribution(rcpRoughness, dg.Ns)));
 			}
+#endif
 		}
 
 	protected:
 		Vec2f s0;         //!< Offset for texture coordinates.
 		Vec2f ds;         //!< Scaling for texture coordinates.
-		Ref<Texture> Kd;  //!< Diffuse textre with an optional alpha channel to the surface.
+		Ref<Texture> Kd;  //!< Diffuse texture with an optional alpha channel to the surface.
 		Color diffuse;  //! Diffuse reflectance of the surface. The range is from 0 (black) to 1 (white).
 		float eta;          //!< Refraction index of the dielectric layer.
 		float roughness;    //!< Roughness parameter. The range goes from 0 (specular) to 1 (diffuse).

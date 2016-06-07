@@ -22,24 +22,24 @@
 
 namespace embree
 {
-  /*! Implements a mirror material. The reflected light can be
-   *  modulated with a mirror reflectivity. */
-  class Mirror : public Material
-  {
-  public:
+	/*! Implements a mirror material. The reflected light can be
+	 *  modulated with a mirror reflectivity. */
+	class Mirror : public Material
+	{
+	public:
 
-    /*! Construction from parameters. */
-    Mirror(const Parms& parms) {
-      reflectance = parms.getColor("reflectance",one);
-    }
+		/*! Construction from parameters. */
+		Mirror(const Parms& parms) {
+			reflectance = parms.getColor("reflectance", one);
+		}
 
-    void shade(const Ray& ray, const Medium& currentMedium, const DifferentialGeometry& dg, CompositedBRDF& brdfs) const {
-      brdfs.add(NEW_BRDF(Reflection)(reflectance));
-    }
+		void shade(const Ray& ray, const Medium& currentMedium, const DifferentialGeometry& dg, CompositedBRDF& brdfs) const {
+			brdfs.add(NEW_BRDF(Reflection)(reflectance));
+		}
 
-  protected:
-    Color reflectance;  //!< Reflectivity of the mirror
-  };
+	protected:
+		Color reflectance;  //!< Reflectivity of the mirror
+	};
 }
 
 #endif

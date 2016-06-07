@@ -46,6 +46,10 @@ namespace embree
 			return null;
 		}
 
+		bool rayIntersect(const Ray &ray, float &tNear, float &tFar) const override {
+			return bsphere.rayIntersect(ray.org, ray.dir, tNear, tFar);
+		}
+
 		Ref<Light> transform(const AffineSpace3f& xfm,
 			light_mask_t illumMask,
 			light_mask_t shadowMask) const {

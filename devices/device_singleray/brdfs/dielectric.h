@@ -31,7 +31,7 @@ namespace embree
 		 *  refraction index of the medium the incident ray travels in
 		 *  \param etat is the refraction index of the opposite medium */
 		__forceinline DielectricReflection(float etai, float etat, const float alpha = 1.f)
-			: BRDF(SPECULAR_REFLECTION), eta(etai*rcp(etat)), alpha(alpha) {}
+			: BRDF(SPECULAR_REFLECTION), eta_(etai*rcp(etat)), alpha(alpha) {}
 
 		__forceinline Color eval(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
 			return zero;
@@ -40,7 +40,7 @@ namespace embree
 		Color sample(const Vector3f& wo, const DifferentialGeometry& dg, Sample3f& wi, const Vec2f& s) const {
 			const float cosThetaO = clamp(dot(wo, dg.Ns));
 			wi = reflect(wo, dg.Ns, cosThetaO);
-			const auto c = alpha * Color(fresnelDielectric(cosThetaO, eta));
+			const auto c = alpha * Color(fresnelDielectric(cosThetaO, eta_));
 			wi.eta = 1.f; 
 			return c;
 		}
@@ -49,14 +49,18 @@ namespace embree
 			return 0.f;
 		}
 
-		float getRoughness(const DifferentialGeometry &dg) const {
+		float roughness(const DifferentialGeometry &dg) const override {
 			return 0.f;
+		}
+
+		float eta() const override {
+			return eta_;
 		}
 
 	private:
 
 		/*! relative refraction index etai/etat of both media */
-		float eta;
+		float eta_;
 		float alpha;
 	};
 
@@ -69,7 +73,7 @@ namespace embree
 		 *  refraction index of the medium the incident ray travels in
 		 *  \param etat is the refraction index of the opposite medium */
 		__forceinline DielectricTransmission(float etai, float etat)
-			: BRDF(SPECULAR_TRANSMISSION), eta(etai*rcp(etat)) {}
+			: BRDF(SPECULAR_TRANSMISSION), eta_(etai*rcp(etat)) {}
 
 		__forceinline Color eval(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
 			return zero;
@@ -78,9 +82,9 @@ namespace embree
 		Color sample(const Vector3f& wo, const DifferentialGeometry& dg, Sample3f& wi, const Vec2f& s) const {
 			const float cosThetaO = clamp(dot(wo, dg.Ns));
 			float cosThetaI;
-			wi = refract(wo, dg.Ns, eta, cosThetaO, cosThetaI);
-			const Color c = Color(1.0f - fresnelDielectric(cosThetaO, cosThetaI, eta));
-			wi.eta = cosThetaI < 0.f ? eta : rcp(eta);
+			wi = refract(wo, dg.Ns, eta_, cosThetaO, cosThetaI);
+			const Color c = Color(1.0f - fresnelDielectric(cosThetaO, cosThetaI, eta_));
+			wi.eta = cosThetaI < 0.f ? eta_ : rcp(eta_);
 			return c;
 		}
 
@@ -88,14 +92,18 @@ namespace embree
 			return zero;
 		}
 
-		float getRoughness(const DifferentialGeometry &dg) const {
+		float roughness(const DifferentialGeometry &dg) const override {
 			return 0.f;
+		}
+
+		float eta() const override {
+			return eta_;
 		}
 
 	private:
 
 		/*! relative refraction index etai/etat of both media */
-		float eta;
+		float eta_;
 	};
 
 	/*! BRDF of the transmission part of a thin dielectricum. Supports a
@@ -111,7 +119,7 @@ namespace embree
 		 *  thickness is the thickness of the medium */
 
 		__forceinline ThinDielectricTransmission(float etai, float etat, const Color& T, float thickness)
-			: BRDF(SPECULAR_TRANSMISSION), eta(etai*rcp(etat)), logT(log(T.r), log(T.g), log(T.b)), thickness(thickness) {}
+			: BRDF(SPECULAR_TRANSMISSION), eta_(etai*rcp(etat)), logT(log(T.r), log(T.g), log(T.b)), thickness(thickness) {}
 
 		__forceinline Color eval(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
 			return zero;
@@ -124,8 +132,8 @@ namespace embree
 			if (cosTheta <= 0.0f) return zero;
 			const float alpha = thickness * rcp(cosTheta);
 			float cosThetaT;
-			const Color c = exp(logT * alpha) * (1.f - fresnelDielectric(cosTheta, eta, &cosThetaT));
-			wi.eta = cosThetaT < 0.f ? eta : rcp(eta);
+			const Color c = exp(logT * alpha) * (1.f - fresnelDielectric(cosTheta, eta_, &cosThetaT));
+			wi.eta = cosThetaT < 0.f ? eta_ : rcp(eta_);
 			return c;
 		}
 
@@ -133,14 +141,20 @@ namespace embree
 			return 0.f;
 		}
 
-		float getRoughness(const DifferentialGeometry &dg) const {
+		float roughness(const DifferentialGeometry &dg) const override {
 			return 0.f;
+		}
+
+		float eta() const override {
+			/* The relative IOR across this interface is 1, since the internal
+			material is thin: it begins and ends here. */
+			return 1;// eta_;
 		}
 
 	private:
 
 		/*! Relative refraction index etai/etat of both media. */
-		float eta;
+		float eta_;
 
 		/*! Logarithm of volumetric transmission coefficient. */
 		Color logT;
@@ -177,8 +191,12 @@ namespace embree
 			return 0.f;
 		}
 
-		float getRoughness(const DifferentialGeometry &dg) const {
+		float roughness(const DifferentialGeometry &dg) const override {
 			return 0.f;
+		}
+
+		float eta() const override {
+			return 1.f;
 		}
 
 	private:

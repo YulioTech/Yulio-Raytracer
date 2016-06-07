@@ -49,17 +49,22 @@ namespace embree
 	Color PathTraceIntegrator::Li(LightPath& lightPath, const Ref<BackendScene>& scene, IntegratorState& state)
 	{
 #if 0
-		BRDFType directLightingBRDFTypes = (BRDFType)(DIFFUSE | GLOSSY);
-		BRDFType giBRDFTypes = (BRDFType)(SPECULAR);
+		static BRDFType directLightingBRDFTypes = (BRDFType)(DIFFUSE | GLOSSY);
+		static BRDFType giBRDFTypes = (BRDFType)(SPECULAR);
 #else
-		BRDFType directLightingBRDFTypes = (BRDFType)(DIFFUSE);
-		BRDFType giBRDFTypes = (BRDFType)(ALL);
+		static BRDFType directLightingBRDFTypes = (BRDFType)(DIFFUSE);
+		static BRDFType giBRDFTypes = (BRDFType)(ALL);
 #endif
 
 		Color L = zero;
 		float eta = 1.f; // Ray's relative refractive index (used by the Russian Roulette)
 
-		while (true) {
+		while (lightPath.depth < maxDepth) {
+
+			/*! Terminate path if the contribution is too low. */
+			if (reduce_max(lightPath.throughput) < minContribution)
+				break;
+
 			/*! Traverse ray. */
 			DifferentialGeometry dg;
 			//scene->intersector->intersect(lightPath.lastRay);
@@ -74,12 +79,12 @@ namespace embree
 				if (backplate && lightPath.unbent) {
 					const int x = clamp(int(state.pixel.x * backplate->width), 0, int(backplate->width) - 1);
 					const int y = clamp(int(state.pixel.y * backplate->height), 0, int(backplate->height) - 1);
-					L += lightPath.misWeight * backplate->get(x, y);
+					L += lightPath.throughput * backplate->get(x, y);
 				}
 				else {
 					if (!lightPath.ignoreVisibleLights)
 						for (size_t i = 0; i < scene->envLights.size(); i++)
-							L += lightPath.misWeight * scene->envLights[i]->Le(wo);
+							L += lightPath.throughput * scene->envLights[i]->Le(wo);
 				}
 
 				break;
@@ -106,7 +111,7 @@ namespace embree
 
 			/*! Add light emitted by hit area light source. */
 			if (!lightPath.ignoreVisibleLights && dg.light && !backfacing)
-				L += lightPath.misWeight * dg.light->Le(dg, wo);
+				L += lightPath.throughput * dg.light->Le(dg, wo);
 
 			/*! Check if any BRDF component uses direct lighting. */
 			bool useDirectLighting = false;
@@ -139,6 +144,8 @@ namespace embree
 					//}
 
 					/*! Test for shadows. */
+					// Lev: limit the max shadow ray length to introduce some fake direct lighting into the scene.
+					// This is done to allow the lighting of the indoor scenes without having to use actually use any additional lights.
 					ls.tMax = tMaxShadowRay;
 					Ray shadowRay(dg.P, ls.wi, dg.error*epsilon, ls.tMax - dg.error*epsilon, lightPath.lastRay.time, dg.shadowMask);
 					//bool inShadow = scene->intersector->occluded(shadowRay);
@@ -147,7 +154,7 @@ namespace embree
 					if (shadowRay) continue;
 
 					/*! Evaluate BRDF. */
-					L += lightPath.misWeight * ls.L * brdf * rcp(ls.wi.pdf);
+					L += lightPath.throughput * ls.L * brdf * rcp(ls.wi.pdf);
 				}
 			}
 
@@ -169,10 +176,10 @@ namespace embree
 			/*! Global illumination. Pick one BRDF component and sample it. */
 			{
 				/*! sample brdf */
-				Sample3f sample; BRDFType type;
+				Sample3f sample; BRDFType type; size_t index;
 				const Vec2f s = state.sample->getVec2f(firstScatterSampleID + lightPath.depth);
 				const float ss = state.sample->getFloat(firstScatterTypeSampleID + lightPath.depth);
-				Color c = brdfs.sample(wo, dg, sample, type, s, ss, giBRDFTypes);
+				Color c = brdfs.sample(wo, dg, sample, type, index, s, ss, giBRDFTypes);
 
 				/*! Continue only if we hit something valid. */
 				if (c == Color(zero) || sample.pdf <= 0.f) break;
@@ -184,10 +191,6 @@ namespace embree
 				if (transmission != Color(one)) {
 					c *= pow(transmission, lightPath.lastRay.tfar);
 				}
-
-				/*! Terminate path if the contribution is too low. */
-				if (reduce_max(lightPath.throughput * c) < minContribution)
-					break;
 
 				/*! Tracking medium if we hit a medium interface. */
 				Medium nextMedium = lightPath.lastMedium;
@@ -223,11 +226,11 @@ namespace embree
 		Color L = zero;
 		const Vector3f wo = -lightPath.lastRay.dir;
 #if 0
-		BRDFType directLightingBRDFTypes = (BRDFType)(DIFFUSE | GLOSSY);
-		BRDFType giBRDFTypes = (BRDFType)(SPECULAR);
+		static BRDFType directLightingBRDFTypes = (BRDFType)(DIFFUSE | GLOSSY);
+		static BRDFType giBRDFTypes = (BRDFType)(SPECULAR);
 #else
-		BRDFType directLightingBRDFTypes = (BRDFType)(DIFFUSE);
-		BRDFType giBRDFTypes = (BRDFType)(ALL);
+		static BRDFType directLightingBRDFTypes = (BRDFType)(DIFFUSE);
+		static BRDFType giBRDFTypes = (BRDFType)(ALL);
 #endif
 
 		/*! Environment shading when nothing is hit. */
@@ -277,7 +280,7 @@ namespace embree
 				if (scene->allLights[i]->precompute())
 					ls = state.sample->getLightSample(precomputedLightSampleID[i]);
 				else
-					ls.L = scene->allLights[i]->sample(dg, ls.wi, ls.tMax, state.sample->getVec2f(lightSampleID));
+					ls.L = scene->allLights[i]->sample(dg, ls, state.sample->getVec2f(lightSampleID));
 
 				/*! Ignore zero radiance or illumination from the back. */
 				//if (ls.L == Color(zero) || ls.wi.pdf == 0.0f || dot(dg.Ns,Vector3f(ls.wi)) <= 0.0f) continue; 
@@ -305,10 +308,10 @@ namespace embree
 		/*! Global illumination. Pick one BRDF component and sample it. */
 		if (lightPath.depth < maxDepth) {
 			/*! sample brdf */
-			Sample3f wi; BRDFType type;
+			Sample3f wi; BRDFType type; size_t index;
 			const Vec2f s = state.sample->getVec2f(firstScatterSampleID + lightPath.depth);
 			const float ss = state.sample->getFloat(firstScatterTypeSampleID + lightPath.depth);
-			Color c = brdfs.sample(wo, dg, wi, type, s, ss, giBRDFTypes);
+			Color c = brdfs.sample(wo, dg, wi, type, index, s, ss, giBRDFTypes);
 
 			/*! Continue only if we hit something valid. */
 			if (c != Color(zero) && wi.pdf > 0.0f) {

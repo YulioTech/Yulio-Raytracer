@@ -470,8 +470,11 @@ namespace embree
 
 #if 0
 				// For testing
-				const size_t testCameraIndex = 2;
-				for (size_t i = (testCameraIndex - 1) * 12; i < testCameraIndex * 12; ++i) {
+				const size_t desiredCameraIndex = 2;
+				const size_t testCameraIndex = min(desiredCameraIndex, g_stereoCubeCameras.size()/12 - 1);
+				const size_t testViewBegin = testCameraIndex * 12;
+				const size_t testViewEnd = (testCameraIndex + 1) * 12 - 11;
+				for (size_t i = testViewBegin; i < testViewEnd; ++i) {
 #else
 				for (size_t i = 0; i < g_stereoCubeCameras.size() && !Yulio::yulioStop; ++i) {
 #endif
@@ -485,8 +488,8 @@ namespace embree
 						Vector3f camPos;
 						g_device->rtGetFloat3(stereoCubeCamera, "origin", camPos.x, camPos.y, camPos.z);
 
-						for (size_t i = 0; i < g_prims.size(); i++)
-							g_device->rtUpdatePrimitive(scene, i, g_prims[i], camPos, g_camUp);
+						for (size_t j = 0; j < g_prims.size(); ++j)
+							g_device->rtUpdatePrimitive(scene, j, g_prims[i], camPos, g_camUp);
 
 						g_device->rtCommit(scene);
 					}
@@ -510,7 +513,7 @@ namespace embree
 
 					g_device->rtRenderFrame(g_renderer, stereoCubeCamera, scene, g_tonemapper, g_frameBuffer, 0);
 
-					for (int i = 0; i < g_numBuffers; i++)
+					for (int j = 0; j < g_numBuffers; ++j)
 						g_device->rtSwapBuffers(g_frameBuffer);
 
 					// Override the file name
@@ -582,7 +585,7 @@ namespace embree
 						else if (g_format == "RGBA_FLOAT32")  finalImage = new Image4f(g_width * 12, g_height);
 						else throw std::runtime_error("unsupported framebuffer format: " + g_format);
 
-						for (size_t y = 0, i = 0; y < finalImage->height; ++y) {
+						for (size_t y = 0; y < finalImage->height; ++y) {
 							for (size_t x = 0; x < finalImage->width; ++x) {
 								const size_t finalImageSegment = x / g_width;
 								const size_t xCubeFaceOffset = x % g_width; 

@@ -22,33 +22,37 @@
 
 namespace embree
 {
-  /*! BRDF of a perfect mirror. */
-  class Reflection : public BRDF
-  {
-  public:
+	/*! BRDF of a perfect mirror. */
+	class Reflection : public BRDF
+	{
+	public:
 
-    /*! Reflection BRDF constructor. This is a specular reflection
-     *  BRDF. \param R is the reflectivity of the mirror. */
-    __forceinline Reflection(const Color& R) : BRDF(SPECULAR_REFLECTION), R(R) {}
+		/*! Reflection BRDF constructor. This is a specular reflection
+		 *  BRDF. \param R is the reflectivity of the mirror. */
+		__forceinline Reflection(const Color& R) : BRDF(SPECULAR_REFLECTION), R(R) {}
 
-    __forceinline Color eval(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
-      return zero;
-    }
+		__forceinline Color eval(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
+			return R;
+		}
 
-    Color sample(const Vector3f& wo, const DifferentialGeometry& dg, Sample3f& wi, const Vec2f& s) const {
-      wi = reflect(wo,dg.Ns);
-      return R;
-    }
+		Color sample(const Vector3f& wo, const DifferentialGeometry& dg, Sample3f& wi, const Vec2f& s) const {
+			wi = reflect(wo, dg.Ns);
+			return R;
+		}
 
-    float pdf(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
-      return zero;
-    }
+		float pdf(const Vector3f& wo, const DifferentialGeometry& dg, const Vector3f& wi) const {
+			return 1.f;
+		}
 
-  private:
+		float roughness(const DifferentialGeometry &dg) const override {
+			return 0.f;
+		}
 
-    /*! reflectivity of the mirror */
-    Color R;
-  };
+	private:
+
+		/*! reflectivity of the mirror */
+		Color R;
+	};
 }
 
 #endif

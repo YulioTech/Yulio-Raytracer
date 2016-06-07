@@ -373,7 +373,7 @@ namespace embree
 		g_device->rtSwapBuffers(g_frameBuffer);
 
 		/* draw image in OpenGL */
-		void* ptr = g_device->rtMapFrameBuffer(g_frameBuffer);
+		const void* ptr = g_device->rtMapFrameBuffer(g_frameBuffer);
 
 		// extern double upload_time;
 
@@ -395,6 +395,17 @@ namespace embree
 
 		glFlush();
 		glutSwapBuffers();
+
+		// Lev: for testing
+		if (0) {
+			Ref<Image> image = null;
+			if (g_format == "RGB8")  image = new Image3c(g_width, g_height, (Col3c*)ptr);
+			else if (g_format == "RGBA8")  image = new Image4c(g_width, g_height, (Col4c*)ptr);
+			else if (g_format == "RGB_FLOAT32")  image = new Image3f(g_width, g_height, (Col3f*)ptr);
+			else if (g_format == "RGBA_FLOAT32")  image = new Image4f(g_width, g_height, (Col4f*)ptr);
+			else throw std::runtime_error("unsupported framebuffer format: " + g_format);
+			storeImage(image, "test.jpg", 100);
+		}
 
 		g_device->rtUnmapFrameBuffer(g_frameBuffer);
 

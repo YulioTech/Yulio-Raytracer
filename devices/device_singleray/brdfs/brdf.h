@@ -22,7 +22,7 @@
 namespace embree {
 
     /*! BRDF type can be used as a hint to the integrator to help pick the best integration method  */
-    enum BRDFType {
+    enum BRDFType : uint32_t {
 
         ALL                   = 0xFFFFFFFF,    /*! all BRDF components for the given surface        */
         DIFFUSE               = 0x000F000F,    /*! all diffuse BRDFs for the given surface          */
@@ -31,6 +31,7 @@ namespace embree {
         GLOSSY                = 0x00F000F0,    /*! all glossy BRDFs for the given surface           */
         GLOSSY_REFLECTION     = 0x00000010,    /*! semi-specular reflection BRDF                    */
         GLOSSY_TRANSMISSION   = 0x00100000,    /*! semi-specular transmission BRDF                  */
+		SMOOTH				= DIFFUSE | GLOSSY,
         JIMENEZ               = 0x02000002,    /*! all Jimenez BRDFs for the given surface          */
         JIMENEZ_REFLECTION    = 0x00000002,    /*! diffuse reflectance to be blurred [Jimenez 2009] */
         JIMENEZ_TRANSMISSION  = 0x02000000,    /*! approximate diffuse transmission  [Jimenez 2010] */
@@ -95,8 +96,20 @@ namespace embree {
 		* surface roughness of the given BRDF component
 		*
 		* An infinite value indicates a component that is ideally diffuse */
-		virtual float roughness(const DifferentialGeometry &dg)     /*! shade location on a surface       */ const {
+		virtual float roughness(const DifferentialGeometry &dg) const {
 			return std::numeric_limits<float>::infinity();
+		}
+
+		/*!
+		* \brief For transmissive BSDFs: return the material's
+		* relative index of refraction
+		*
+		* The default implementation returns <tt>1.0</tt>.
+		*
+		* \return interior IOR / exteriorIOR
+		*/
+		virtual float eta() const {
+			return 1.f;
 		}
 
         /*! BRDF type hint to the integrator */

@@ -50,6 +50,7 @@ namespace embree
 
 		/*! Initializes the shape of the light. */
 		virtual Ref<Shape> createShape(const BackendScene &scene) { return null; }
+		virtual bool rayIntersect(const Ray &ray, float &tNear, float &tFar) const { return false; }
 
 		/*! Evaluates the radiance that would arrive at a given location
 		 *  from a given direction assuming no blocking geometry. \returns
