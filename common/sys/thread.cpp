@@ -101,11 +101,14 @@ namespace embree
 #if !defined(PTHREADS_WIN32)
 
 	/*! creates a hardware thread running on specific core */
-	thread_t createThread(thread_func f, void* arg, size_t stack_size, ssize_t threadID)
+	thread_t createThread(thread_func f, void* arg, size_t stack_size, ssize_t threadID, int threadPriority)
 	{
 		HANDLE thread = CreateThread(NULL, stack_size, (LPTHREAD_START_ROUTINE)threadStartup, new ThreadStartupData(f, arg), 0, NULL);
 		if (thread == NULL) throw std::runtime_error("cannot create thread");
+		
+		SetThreadPriority(thread, threadPriority);
 		if (threadID >= 0) setAffinity(thread, threadID);
+		
 		return thread_t(thread);
 	}
 
@@ -237,7 +240,7 @@ namespace embree
 	}
 
 	/*! creates a hardware thread running on specific core */
-	thread_t createThread(thread_func f, void* arg, size_t stack_size, ssize_t threadID)
+	thread_t createThread(thread_func f, void* arg, size_t stack_size, ssize_t threadID, int threadPriority)
 	{
 #ifdef __MIC__
 		threadID++; // start counting at 1 on MIC

@@ -98,8 +98,8 @@ namespace embree
 					creation of device
 	*******************************************************************/
 
-	__dllexport Device* create(const char* parms, size_t numThreads, const char* rtcore_cfg) {
-		return new SingleRayDevice(numThreads, rtcore_cfg);
+	__dllexport Device* create(const char* parms, size_t numThreads, int threadsPriority, const char* rtcore_cfg) {
+		return new SingleRayDevice(numThreads, threadsPriority, rtcore_cfg);
 	}
 
 	int g_serverCount = 1;
@@ -148,12 +148,12 @@ namespace embree
 					construction
 	*******************************************************************/
 
-	SingleRayDevice::SingleRayDevice(size_t numThreads, const char* cfg)
+	SingleRayDevice::SingleRayDevice(size_t numThreads, int threadsPriority, const char* cfg)
 	{
 		rtcInit(cfg);
 		//rtcSetVerbose(verbose);
 		//rtcStartThreads(numThreads);
-		TaskScheduler::create(numThreads);
+		TaskScheduler::create(numThreads, threadsPriority);
 	}
 
 	SingleRayDevice::~SingleRayDevice()

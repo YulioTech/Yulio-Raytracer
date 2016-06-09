@@ -29,6 +29,11 @@
 #include <mutex>
 #include "YulioRT.h" // Exported async DLL API definition 
 
+#if defined(__WIN32__) && !defined(PTHREADS_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
 namespace Yulio {
 
 	using namespace embree;
@@ -230,6 +235,7 @@ namespace embree
 	std::string g_sceneFileName = "";
 	size_t g_num_frames = 1; // number of frames to render in output mode
 	size_t g_numThreads = 0;// 1; // 0 means auto-detect
+	int g_threadsPriority = THREAD_PRIORITY_BELOW_NORMAL;// THREAD_PRIORITY_NORMAL;
 	size_t g_verbose_output = 0;
 	int g_jpegQuality = 90;
 
@@ -866,7 +872,7 @@ namespace embree
 			if (g_format != "RGBA8") g_format = "RGB8";
 			g_numBuffers = 2;
 			std::string type = "network " + parseList(cin);
-			g_device = Device::rtCreateDevice(type.c_str(), g_numThreads, g_rtcore_cfg.c_str());
+			g_device = Device::rtCreateDevice(type.c_str(), g_numThreads, g_threadsPriority, g_rtcore_cfg.c_str());
 			createGlobalObjects();
 		}
 
@@ -874,7 +880,7 @@ namespace embree
 		else if (tag == "-device") {
 			cin->getString();
 			clearGlobalObjects();
-			g_device = Device::rtCreateDevice(cin->getString().c_str(), g_numThreads, g_rtcore_cfg.c_str());
+			g_device = Device::rtCreateDevice(cin->getString().c_str(), g_numThreads, g_threadsPriority, g_rtcore_cfg.c_str());
 			createGlobalObjects();
 		}
 	}
@@ -1344,7 +1350,7 @@ namespace embree
 
 		/*! create embree device */
 		if (!g_device) {
-			g_device = Device::rtCreateDevice("default", g_numThreads, g_rtcore_cfg.c_str());
+			g_device = Device::rtCreateDevice("default", g_numThreads, g_threadsPriority, g_rtcore_cfg.c_str());
 		}
 
 		createGlobalObjects();
@@ -1488,13 +1494,11 @@ namespace Yulio {
 
 		Ref<ParseStream> stream = new ParseStream(new CommandLineStream(argv));
 
-		/*! parse device to use */
-		parseNumThreads(stream);
-		parseDevice(stream);
+		g_threadsPriority = clamp(currentParams.threadsPriority, THREAD_PRIORITY_IDLE, THREAD_PRIORITY_TIME_CRITICAL);
 
 		/*! create embree device */
 		if (!g_device) {
-			g_device = Device::rtCreateDevice("default", g_numThreads, g_rtcore_cfg.c_str());
+			g_device = Device::rtCreateDevice("default", g_numThreads, g_threadsPriority, g_rtcore_cfg.c_str());
 		}
 
 		createGlobalObjects();

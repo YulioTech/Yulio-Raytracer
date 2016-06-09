@@ -54,7 +54,7 @@ namespace embree
 		virtual ~Device() {}
 
 		/*! Create new Embree device. */
-		static Device* rtCreateDevice(const char* type = "default", size_t numThreads = 0, const char* rtcore_cfg = "");
+		static Device* rtCreateDevice(const char* type = "default", size_t numThreads = 0, int threadsPriority = 0, const char* rtcore_cfg = "");
 
 		/*******************************************************************
 							type definitions

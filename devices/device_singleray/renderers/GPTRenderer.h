@@ -54,6 +54,7 @@ namespace embree
 			static const size_t BUFFER_DY = 2;          ///< Buffer index for the Y gradients.
 			static const size_t BUFFER_VERY_DIRECT = 3; ///< Buffer index for very direct light.
 			Ref<AccuBuffer> buffers[4]; // Accumulation buffers for intermediate results
+			static const int bufferBorderSize = 1; // A 1 pixel buffer border to facilitate proper gradient accumulation
 
 			int accumulate;                //!< Accumulation mode
 			int iteration;

@@ -17,8 +17,9 @@ int main()
 	params.spp = 1;
 	params.jpegQuality = 90;
 	params.debug = false;
-	char *colladaFile = "../../models/Kia.dae";
-	//char *colladaFile = "../../models/treeAlone_tempo_to_execute.dae";
+	params.threadsPriority = -1;
+	//char *colladaFile = "../../models/Kia.dae";
+	char *colladaFile = "../../models/treeAlone_tempo_to_execute.dae";
 
 	const auto nInterations = 10;
 	for (auto i = 0; i < nInterations; ++i) {

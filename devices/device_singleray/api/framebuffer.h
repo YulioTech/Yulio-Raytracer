@@ -232,84 +232,98 @@ namespace embree
 	public:
 
 		/*! constructs a new framebuffer of specified size */
-		AccuBuffer(size_t width, size_t height)
-			: width(width), height(height), data(NULL)
+		AccuBuffer(int width, int height, int borderSize = 0)
+			: width(width), height(height), borderSize(borderSize)
 		{
-			data = new Vec4f[width*height];
-			memset(data, 0, width*height*sizeof(Vec4f));
+			widthWithBorder = width + 2*borderSize;
+			heightWithBorder = height + 2*borderSize;
+			data = std::vector<Vec4f>(widthWithBorder*heightWithBorder, Vec4f(0.f, 0.f, 0.f, 1.f));
 		}
 
 		/*! destroys the framebuffer */
 		~AccuBuffer() {
-			delete[] data; data = NULL;
 		}
 
-		__forceinline size_t isValid(size_t x, size_t y) const {
-			return  (x >= 0 && y >= 0 && x < width && y < height);
+		__forceinline bool isValid(int x, int y) const {
+			return  (x >= 0 - borderSize && y >= 0 - borderSize && x < width + borderSize && y < height + borderSize);
 		}
 
 		/*! return the width of the swapchain */
-		__forceinline size_t getWidth() const { return width; }
+		__forceinline int getWidth() const { return width; }
 
 		/*! return the height of the swapchain */
-		__forceinline size_t getHeight() const { return height; }
+		__forceinline int getHeight() const { return height; }
+
+		__forceinline int getWidthWithBorder() const { return widthWithBorder; }
+		__forceinline int getHeightWithBorder() const { return heightWithBorder; }
+		__forceinline int getWidthBegin() const { return 0 - borderSize; }
+		__forceinline int getWidthEnd() const { return width + borderSize; }
+		__forceinline int getHeightBegin() const { return 0 - borderSize; }
+		__forceinline int getHeightEnd() const { return height + borderSize; }
 
 		/*! return a pointer to the raw pixel data */
-		__forceinline void* getData() { return data; }
+		__forceinline void* getData() { return &data[0]; }
 
 		/*! clear buffer */
-		__forceinline void clear(size_t x, size_t y) {
+		__forceinline void clear(int x, int y) {
 			if (!isValid(x, y))	return;
-
-			data[y*width + x] = Vec4f(0.0f, 0.0f, 0.0f, 1E-10f);
+			
+			data[index(x, y)] = Vec4f(0.0f, 0.0f, 0.0f, 1E-10f);
 		}
 
 		/*! set pixel */
-		__forceinline void set(size_t x, size_t y, const Vec4f& c) {
+		__forceinline void set(int x, int y, const Vec4f& c) {
 			if (!isValid(x, y))	return;
 
-			data[y*width + x] = c;
+			data[index(x, y)] = c;
 		}
 
 		/*! accumulate pixel */
-		__forceinline void add(size_t x, size_t y, const Vec4f& c) {
+		__forceinline void add(int x, int y, const Vec4f& c) {
 			if (!isValid(x, y))	return;
 
-			data[y*width + x] += c;
+			data[index(x, y)] += c;
 		}
 
 		/*! update pixel */
-		__forceinline Color update(size_t x, size_t y, const Color& c, const float weight, bool accu)
+		__forceinline Color update(int x, int y, const Color& c, const float weight, bool accu)
 		{
 			if (!isValid(x, y))	return zero;
 
 			if (accu) {
-				const Vec4f cur = data[y*width + x];
+				const Vec4f cur = data[index(x, y)];
 				const Vec4f next = cur + Vec4f(c.r, c.g, c.b, weight);
-				data[y*width + x] = next;
+				data[index(x, y)] = next;
 				const float norm = rcp(next.w);
 				return Color(next.x, next.y, next.z)*norm;
 			}
 			else {
-				data[y*width + x] = Vec4f(c.r, c.g, c.b, weight);
+				data[index(x, y)] = Vec4f(c.r, c.g, c.b, weight);
 				return c*rcp(weight);
 			}
 		}
 
 		/*! read pixel */
-		__forceinline const Color get(size_t x, size_t y) const
+		__forceinline const Color get(int x, int y) const
 		{
 			if (!isValid(x, y))	return zero;
 
-			const Vec4f& c = data[y*width + x];
+			const Vec4f& c = data[index(x, y)];
 			const float norm = rcp(c.w);
 			return Color(c.x, c.y, c.z)*norm;
 		}
 
 	protected:
-		size_t width;              //!< width of the framebuffer in pixels
-		size_t height;             //!< height of the framebuffer in pixels
-		Vec4f* data;                //!< framebuffer data
+		__forceinline size_t index(int x, int y) const {
+			const size_t index = (y + borderSize)*widthWithBorder + (x + borderSize);
+			return index;
+		}
+
+		int width;              //!< width of the framebuffer in pixels
+		int height;             //!< height of the framebuffer in pixels
+		int borderSize;
+		int widthWithBorder, heightWithBorder;
+		std::vector<Vec4f> data;                //!< framebuffer data
 	};
 }
 

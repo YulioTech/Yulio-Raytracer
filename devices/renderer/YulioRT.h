@@ -44,7 +44,8 @@ namespace Yulio {
 		bool toeIn = true; 					// forces a toe - in stereoscopic camera if present, with the zero parallax value specified separately
 		float zeroParallax = 75.f;			// zero parallax depth from the view point in inches(only active when the toeIn flag is present)
 		int jpegQuality = 90;				// JPEG compression quality (1-100 range)
-		bool debug = false;					// if present, enables debug the debug mode (i.e. keeping the intermediate image files, more detailed logging, etc.) 
+		bool debug = false;					// if present, enables debug the debug mode (i.e. keeping the intermediate image files, more detailed logging, etc.)
+		int threadsPriority = 0;			// worker threads priority as defined in Windows SetThreadPriorityfunction (i.e. 0 - is normal, -1 - below normal, etc.)
 	};
 
 	DllApi bool StartRT(const char* colladaFile, const ParamsRT* params);

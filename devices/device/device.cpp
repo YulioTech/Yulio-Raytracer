@@ -21,29 +21,29 @@
 
 namespace embree
 {
-	typedef Device* (*create_device_func)(const char* parms, size_t numThreads, const char* rtcore_cfg);
+	typedef Device* (*create_device_func)(const char* parms, size_t numThreads, int threadsPriority, const char* rtcore_cfg);
 
-	Device* rtCreateDeviceHelper(const char* file, const char* parms, size_t numThreads, const char* rtcore_cfg)
+	Device* rtCreateDeviceHelper(const char* file, const char* parms, size_t numThreads, int threadsPriority, const char* rtcore_cfg)
 	{
 		lib_t lib = openLibrary(file);
 		if (lib == nullptr) throw std::runtime_error("failed loading library \"" + std::string(file) + "\"");
 		create_device_func f = (create_device_func)getSymbol(lib, "create");
 		if (f == nullptr) throw std::runtime_error("invalid device library");
-		Device* dev = f(parms, numThreads, rtcore_cfg);
+		Device* dev = f(parms, numThreads, threadsPriority, rtcore_cfg);
 		if (dev == nullptr) throw std::runtime_error("device creation failed");
 		return dev;
 	}
 
-	Device* Device::rtCreateDevice(const char* type, size_t numThreads, const char* rtcore_cfg)
+	Device* Device::rtCreateDevice(const char* type, size_t numThreads, int threadsPriority, const char* rtcore_cfg)
 	{
-		if (!strcmp(type, "default")) return rtCreateDeviceHelper("device_singleray", "", numThreads, rtcore_cfg);
-		else if (!strcmp(type, "singleray")) return rtCreateDeviceHelper("device_singleray", "", numThreads, rtcore_cfg);
-		else if (!strcmp(type, "singleray_knc") || !strcmp(type, "singleray_xeonphi")) return rtCreateDeviceHelper("device_coi", "device_singleray_knc", numThreads, rtcore_cfg);
-		else if (!strcmp(type, "ispc")) return rtCreateDeviceHelper("device_ispc", "", numThreads, rtcore_cfg);
-		else if (!strcmp(type, "ispc_sse")) return rtCreateDeviceHelper("device_ispc_sse", "", numThreads, rtcore_cfg);
-		else if (!strcmp(type, "ispc_avx")) return rtCreateDeviceHelper("device_ispc_avx", "", numThreads, rtcore_cfg);
-		else if (!strcmp(type, "ispc_knc") || !strcmp(type, "ispc_xeonphi")) return rtCreateDeviceHelper("device_coi", "device_ispc_knc", numThreads, rtcore_cfg);
-		else if (strstr(type, "network ") == type)  return rtCreateDeviceHelper("device_network", type + 8, numThreads, rtcore_cfg);
+		if (!strcmp(type, "default")) return rtCreateDeviceHelper("device_singleray", "", numThreads, threadsPriority, rtcore_cfg);
+		else if (!strcmp(type, "singleray")) return rtCreateDeviceHelper("device_singleray", "", numThreads, threadsPriority, rtcore_cfg);
+		else if (!strcmp(type, "singleray_knc") || !strcmp(type, "singleray_xeonphi")) return rtCreateDeviceHelper("device_coi", "device_singleray_knc", numThreads, threadsPriority, rtcore_cfg);
+		else if (!strcmp(type, "ispc")) return rtCreateDeviceHelper("device_ispc", "", numThreads, threadsPriority, rtcore_cfg);
+		else if (!strcmp(type, "ispc_sse")) return rtCreateDeviceHelper("device_ispc_sse", "", numThreads, threadsPriority, rtcore_cfg);
+		else if (!strcmp(type, "ispc_avx")) return rtCreateDeviceHelper("device_ispc_avx", "", numThreads, threadsPriority, rtcore_cfg);
+		else if (!strcmp(type, "ispc_knc") || !strcmp(type, "ispc_xeonphi")) return rtCreateDeviceHelper("device_coi", "device_ispc_knc", numThreads, threadsPriority, rtcore_cfg);
+		else if (strstr(type, "network ") == type)  return rtCreateDeviceHelper("device_network", type + 8, numThreads, threadsPriority, rtcore_cfg);
 		else throw std::runtime_error("unknown device: " + std::string(type));
 	}
 }

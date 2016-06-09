@@ -29,7 +29,7 @@ namespace embree
   public:
 
     /*! construction */
-    SingleRayDevice(size_t numThreads, const char* cfg);
+    SingleRayDevice(size_t numThreads, int threadsPriority, const char* cfg);
 
     /*! destruction */
     ~SingleRayDevice();

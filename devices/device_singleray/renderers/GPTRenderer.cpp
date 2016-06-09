@@ -83,10 +83,10 @@ namespace embree
 		renderer->samplers->init(iteration, renderer->filter);
 
 		// Init the accumulation buffers
-		buffers[BUFFER_THROUGHPUT] = new AccuBuffer(width, height);
-		buffers[BUFFER_DX] = new AccuBuffer(width, height);
-		buffers[BUFFER_DY] = new AccuBuffer(width, height);
-		buffers[BUFFER_VERY_DIRECT] = new AccuBuffer(width, height);
+		buffers[BUFFER_THROUGHPUT] = new AccuBuffer(width, height, bufferBorderSize);
+		buffers[BUFFER_DX] = new AccuBuffer(width, height, bufferBorderSize);
+		buffers[BUFFER_DY] = new AccuBuffer(width, height, bufferBorderSize);
+		buffers[BUFFER_VERY_DIRECT] = new AccuBuffer(width, height, bufferBorderSize);
 #if 1
 		TaskScheduler::EventSync event;
 		TaskScheduler::Task task(&event, _renderTile, this, TaskScheduler::getNumThreads(), _finish, this, "render::tile");
@@ -104,27 +104,18 @@ namespace embree
 		if (renderer->reconstructL1 || renderer->reconstructL2) {
 
 			/* Reconstruct. */
-			poisson::Solver::Params params;
-
-			if (renderer->reconstructL1) {
-				params.setConfigPreset("L1D");
-			}
-			else if (renderer->reconstructL2) {
-				params.setConfigPreset("L2D");
-			}
-
-			const auto width = swapchain->getWidth();
-			const auto height = swapchain->getHeight();
-			const auto pixelCount = width * height;
-			std::vector<Vec3f> throughputVector(pixelCount);
-			std::vector<Vec3f> dxVector(pixelCount);
-			std::vector<Vec3f> dyVector(pixelCount);
-			std::vector<Vec3f> directVector(pixelCount);
-			std::vector<Vec3f> reconstructionVector(pixelCount);
+			const size_t widthWithBorder = buffers[BUFFER_THROUGHPUT]->getWidthWithBorder();
+			const size_t heightWithBorder = buffers[BUFFER_THROUGHPUT]->getHeightWithBorder();
+			const size_t pixelCount = widthWithBorder * heightWithBorder;
+			std::vector<Vec3f> throughputVector(pixelCount, zero);
+			std::vector<Vec3f> dxVector(pixelCount, zero);
+			std::vector<Vec3f> dyVector(pixelCount, zero);
+			std::vector<Vec3f> directVector(pixelCount, zero);
+			std::vector<Vec3f> reconstructionVector(pixelCount, zero);
 
 			Color c = zero;
-			for (int y = 0, p = 0; y < height; ++y) {
-				for (int x = 0; x < width; ++x, ++p) {
+			for (int y = buffers[BUFFER_THROUGHPUT]->getHeightBegin(), p = 0; y < buffers[BUFFER_THROUGHPUT]->getHeightEnd(); ++y) {
+				for (int x = buffers[BUFFER_THROUGHPUT]->getWidthBegin(); x < buffers[BUFFER_THROUGHPUT]->getWidthEnd(); ++x, ++p) {
 					c = buffers[BUFFER_THROUGHPUT]->get(x, y);
 					throughputVector[p] = Vec3f(c.r, c.g, c.b);
 					
@@ -139,8 +130,19 @@ namespace embree
 				}
 			}
 
+			poisson::Solver::Params params;
+			if (renderer->reconstructL1) {
+				params.setConfigPreset("L1D");
+			}
+			else if (renderer->reconstructL2) {
+				params.setConfigPreset("L2D");
+			}
 			params.alpha = renderer->reconstructAlpha;
-			///params.setLogFunction(poisson::Solver::Params::LogFunction([](const std::string& message) { SLog(EInfo, "%s", message.c_str()); }));
+#if defined (_DEBUG)
+			params.verbose = true;
+			const auto log = [](const std::string& message) { std::cout << message << std::endl; };
+			params.setLogFunction(log);
+#endif
 
 			poisson::Solver solver(params);
 			solver.importImagesMTS(
@@ -148,7 +150,7 @@ namespace embree
 				reinterpret_cast<float *>(dyVector.data()),
 				reinterpret_cast<float *>(throughputVector.data()),
 				reinterpret_cast<float *>(directVector.data()),
-				width, height);
+				widthWithBorder, heightWithBorder);
 
 			solver.setupBackend();
 			solver.solveIndirect();
@@ -156,10 +158,13 @@ namespace embree
 			solver.exportImagesMTS(reinterpret_cast<float *>(reconstructionVector.data()));
 
 			// Update the main framebuffer with the results
-			for (int y = 0, p = 0; y < height; ++y) {
+			const auto width = swapchain->getWidth();
+			const auto height = swapchain->getHeight();
+			for (int y = 0; y < height; ++y) {
 				const size_t _y = swapchain->raster2buffer(y);
-				for (int x = 0; x < width; ++x, ++p) {
-					Color c(reconstructionVector[p].x, reconstructionVector[p].y, reconstructionVector[p].z);
+				for (int x = 0; x < width; ++x) {
+					const size_t index = (y + bufferBorderSize)*widthWithBorder + (x + bufferBorderSize);
+					const Color c(reconstructionVector[index].x, reconstructionVector[index].y, reconstructionVector[index].z);
 					// Lev: GPT has a somewhat greater energy loss (i.e. the throughput falloff is faster) than the vanilla PT
 					// when a throughput threshold value is used, so we compensate here with a fudge factor (determined empirically by eyeballing).
 					//c *= 1.2f;
@@ -294,12 +299,16 @@ namespace embree
 						// Actual throughputs, with MIS between central and neighbor pixels for all neighbors.
 						// This can be replaced with a standard throughput sample without much loss of quality in most cases.
 						{
+#ifdef GPT_CENTRAL_RADIANCE
+							buffers[BUFFER_THROUGHPUT]->update(center_pixel.x, center_pixel.y, 2 * centralThroughput, spp, accumulate);			// Central throughput (4 times the weight of neighbors).
+#else
 							buffers[BUFFER_THROUGHPUT]->update(center_pixel.x, center_pixel.y, 2 * centralThroughput, .25f * spp, accumulate);			// Central throughput (4 times the weight of neighbors).
 
 							buffers[BUFFER_THROUGHPUT]->update(left_pixel.x, left_pixel.y, 2 * shiftedThroughputs[LEFT], 1.f * spp, accumulate);		// Negative x throughput.
 							buffers[BUFFER_THROUGHPUT]->update(right_pixel.x, right_pixel.y, 2 * shiftedThroughputs[RIGHT], 1.f * spp, accumulate);		// Positive x throughput.
 							buffers[BUFFER_THROUGHPUT]->update(top_pixel.x, top_pixel.y, 2 * shiftedThroughputs[TOP], 1.f * spp, accumulate);			// Negative y throughput.
 							buffers[BUFFER_THROUGHPUT]->update(bottom_pixel.x, bottom_pixel.y, 2 * shiftedThroughputs[BOTTOM], 1.f * spp, accumulate);	// Positive y throughput.
+#endif
 						}
 
 						// Gradients.

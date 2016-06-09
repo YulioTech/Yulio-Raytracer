@@ -35,7 +35,7 @@ namespace embree
 
 	TaskScheduler* TaskScheduler::instance = NULL;
 
-	void TaskScheduler::create(size_t numThreads)
+	void TaskScheduler::create(size_t numThreads, int threadsPriority)
 	{
 		if (instance)
 			throw std::runtime_error("Embree threads already running.");
@@ -56,9 +56,9 @@ namespace embree
 		instance = new TaskSchedulerSys;
 #endif
 #if 1
-		instance->createThreads(numThreads);
+		instance->createThreads(numThreads, threadsPriority);
 #else
-		instance->createThreads(1);
+		instance->createThreads(1, threadsPriority);
 		std::cout << "WARNING: Using only a single thread." << std::endl;
 #endif
 	}
@@ -96,7 +96,7 @@ namespace embree
 	TaskScheduler::TaskScheduler()
 		: terminateThreads(false), numThreads(0), thread2event(NULL) {}
 
-	void TaskScheduler::createThreads(size_t numThreads_in)
+	void TaskScheduler::createThreads(size_t numThreads_in, int threadsPriority)
 	{
 		numThreads = numThreads_in;
 #if defined(__MIC__)
@@ -111,7 +111,7 @@ namespace embree
 
 		/* generate all threads */
 		for (size_t t = 0; t < numThreads; t++) {
-			threads.push_back(createThread((thread_func)threadFunction, new Thread(t, numThreads, this), 4 * 1024 * 1024, t));
+			threads.push_back(createThread((thread_func)threadFunction, new Thread(t, numThreads, this), 4 * 1024 * 1024, t, threadsPriority));
 		}
 	}
 

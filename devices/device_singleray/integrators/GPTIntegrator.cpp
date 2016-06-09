@@ -3,9 +3,6 @@
 #include "integrators/GPTIntegrator.h"
 #include "brdfs/optics.h"
 
-/// If defined, uses only the central sample for the throughput estimate. Otherwise uses offset paths for estimating throughput too.
-//#define CENTRAL_RADIANCE
-
 namespace embree
 {
 	/// A threshold to use in positive denominators to avoid division by zero.
@@ -600,7 +597,7 @@ namespace embree
 						const float mainWeightNumerator = basePath.pdf * baseLs.wi.pdf;
 						const float mainWeightDenominator = (basePath.pdf * basePath.pdf) * ((baseLs.wi.pdf * baseLs.wi.pdf) + (mainBsdfPdf * mainBsdfPdf));
 
-#ifdef CENTRAL_RADIANCE
+#ifdef GPT_CENTRAL_RADIANCE
 						basePath.addRadiance(basePath.throughput * (mainBSDFValue * mainEmitterRadiance), mainWeightNumerator / (D_EPSILON + mainWeightDenominator));
 #endif
 						// The base path is good. Add radiance differences to offset paths.
@@ -639,7 +636,6 @@ namespace embree
 									// Follow the base path. The current vertex is shared, but the incoming directions differ.
 									//const Vector3f incomingDirection = normalize(shiftedPath.lastDG.P - basePath.lastDG.P);
 									const Vector3f incomingDirection = normalize(shiftedPath.lastRay.org - basePath.lastDG.P);
-									
 
 									//BSDFSamplingRecord bRec(main.rRec.its, main.rRec.its.toLocal(incomingDirection), main.rRec.its.toLocal(dRec.d), ERadiance);
 
@@ -760,7 +756,7 @@ namespace embree
 								shiftedContribution = Color(0.f);
 							}
 
-#ifndef CENTRAL_RADIANCE
+#ifndef GPT_CENTRAL_RADIANCE
 							// Note: Using also the offset paths for the throughput estimate, like we do here, provides some advantage when a large reconstruction alpha is used,
 							// but using only throughputs of the base paths doesn't usually lose by much.
 							basePath.addRadiance(mainContribution, weight);
@@ -919,7 +915,7 @@ namespace embree
 					const float mainWeightNumerator = mainPreviousPdf * mainBsdfPdf;
 					const float mainWeightDenominator = (mainPreviousPdf * mainPreviousPdf) * ((mainLumPdf * mainLumPdf) + (mainBsdfPdf * mainBsdfPdf));
 
-#ifdef CENTRAL_RADIANCE
+#ifdef GPT_CENTRAL_RADIANCE
 					if (basePath.depth + 1 >= minDepth) {
 						basePath.addRadiance(basePath.throughput * mainEmitterRadiance, mainWeightNumerator / (D_EPSILON + mainWeightDenominator));
 					}
@@ -1323,9 +1319,9 @@ namespace embree
 						// Note: Using also the offset paths for the throughput estimate, like we do here, provides some advantage when a large reconstruction alpha is used,
 						// but using only throughputs of the base paths doesn't usually lose by much.
 						if (basePath.depth + 1 >= minDepth) {
-#ifndef CENTRAL_RADIANCE
+#ifndef GPT_CENTRAL_RADIANCE
 							basePath.addRadiance(mainContribution, weight);
-							//shiftedPath.addRadiance(shiftedContribution, weight);
+							shiftedPath.addRadiance(shiftedContribution, weight);
 #endif
 
 							shiftedPath.addGradient(shiftedContribution - mainContribution, weight);

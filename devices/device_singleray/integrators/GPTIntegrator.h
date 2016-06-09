@@ -6,6 +6,9 @@
 
 namespace embree
 {
+	/// If defined, uses only the central sample for the throughput estimate. Otherwise uses offset paths for estimating throughput too.
+	//#define GPT_CENTRAL_RADIANCE
+
 	/*! Path tracer integrator. The implementation follows a single path
 	*  from the camera into the scene and connect the path at each
 	*  diffuse or glossy surface to all light sources. Except for this

@@ -276,7 +276,7 @@ void Solver::setupBackend(void)
 
     if (!m_backend && (m_params.backend == "OpenMP" || m_params.backend == "Auto"))
     {
-        log("Using OpenMP backend\n");
+		if (m_params.verbose) log("Using OpenMP backend\n");
         m_backend = new BackendOpenMP;
     }
 
@@ -284,7 +284,7 @@ void Solver::setupBackend(void)
 
     if (!m_backend && (m_params.backend == "Naive" || m_params.backend == "Auto"))
     {
-        log("Using naive CPU backend\n");
+		if (m_params.verbose) log("Using naive CPU backend\n");
         m_backend = new Backend;
     }
 
@@ -497,7 +497,7 @@ void Solver::solveIndirect(void)
 
     // Print total execution time.
 
-    log("Execution time = %.2f s\n", m_backend->endTimer(m_timerTotal));
+	if (m_params.verbose) log("Execution time = %.2f s\n", m_backend->endTimer(m_timerTotal));
 
     // Display final result.
 
