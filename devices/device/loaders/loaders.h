@@ -30,7 +30,7 @@ namespace embree
 	Handle<Device::RTImage> rtLoadImage(const FileName& fileName);
 	void rtClearImageCache();
 
-	Handle<Device::RTTexture> rtLoadTexture(const FileName& fileName, const std::string &filtering = "bilinear");
+	Handle<Device::RTTexture> rtLoadTexture(const FileName& fileName, const std::string &filtering = "bilinear", bool invert = false);
 	void rtClearTextureCache();
 
 	std::vector<Handle<Device::RTPrimitive>> rtLoadScene(const FileName& fileName, std::vector<Handle<Device::RTCamera>> *cameras = nullptr);

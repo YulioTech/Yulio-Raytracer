@@ -342,7 +342,7 @@ namespace embree {
 			else if (materialType == "ThinDielectric") {
 				// ToDo: the handling of transmission needs further investigation!
 				if (textureFilePath != "") {
-					g_device->rtSetTexture(material, "Kd", rtLoadTexture(FileName(textureFilePath)));
+					g_device->rtSetTexture(material, "Kd", rtLoadTexture(FileName(textureFilePath), "bilinear", false));
 				}
 				else {
 					g_device->rtSetFloat3(material, "transmission", diffuseColor.r * (1.f - transmissionColor.r), diffuseColor.g * (1.f - transmissionColor.g), diffuseColor.b * (1.f - transmissionColor.b));

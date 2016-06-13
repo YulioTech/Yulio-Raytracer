@@ -44,7 +44,7 @@ namespace embree
 
 	static std::map<std::string, Handle<Device::RTTexture>>* texture_map = nullptr;
 
-	Handle<Device::RTTexture> rtLoadTexture(const FileName &fileName, const std::string &filtering)
+	Handle<Device::RTTexture> rtLoadTexture(const FileName &fileName, const std::string &filtering, bool invert)
 	{
 		if (texture_map == nullptr)
 			texture_map = new std::map<std::string, Handle<Device::RTTexture>>;
@@ -54,6 +54,7 @@ namespace embree
 
 		Handle<Device::RTTexture> texture = g_device->rtNewTexture(filtering.c_str());
 		g_device->rtSetImage(texture, "image", rtLoadImage(fileName));
+		g_device->rtSetBool1(texture, "invert", invert);
 		g_device->rtCommit(texture);
 
 		return((*texture_map)[fileName.str()] = texture);

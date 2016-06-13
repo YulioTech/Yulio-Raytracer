@@ -34,6 +34,7 @@ namespace embree
 		/*! Construction from parameters. */
 		NearestNeighbor(const Parms& parms) {
 			image = parms.getImage("image");
+			invert = parms.getBool("invert", false);
 		}
 
 		__forceinline Color4 get(const Vec2f& p) const {
@@ -41,11 +42,13 @@ namespace embree
 			const int si = (int)(s1*float(image->width)), ti = (int)(t1*float(image->height));
 			const int ix = clamp(si, int(0), int(image->width - 1));
 			const int iy = clamp(ti, int(0), int(image->height - 1));
-			return image->get(ix, iy);
+			const Color4 c = image->get(ix, iy);
+			return invert ? Color4(1.f) - c : c;
 		}
 
 	protected:
 		Ref<Image> image; //!< Image mapped to surface.
+		bool invert = false;
 	};
 }
 
