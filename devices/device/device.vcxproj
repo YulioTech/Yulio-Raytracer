@@ -343,7 +343,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <PostBuildEvent>
-      <Message>Copying Embree DLL</Message>
+      <Message>Copying Embree DLLs</Message>
       <Command>xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\embree.dll" "$(OutDir)"
 xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbb.dll" "$(OutDir)"
 xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDir)"</Command>
@@ -370,7 +370,7 @@ xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDi
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <PostBuildEvent>
-      <Message>Copying Embree DLL</Message>
+      <Message>Copying Embree DLLs</Message>
       <Command>xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\embree.dll" "$(OutDir)"
 xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbb.dll" "$(OutDir)"
 xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDir)"</Command>
@@ -441,7 +441,7 @@ xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDi
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <PostBuildEvent>
-      <Message>Copying Embree DLL</Message>
+      <Message>Copying Embree DLLs</Message>
       <Command>xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\embree.dll" "$(OutDir)"
 xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbb.dll" "$(OutDir)"
 xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDir)"</Command>
@@ -468,7 +468,7 @@ xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDi
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <PostBuildEvent>
-      <Message>Copying Embree DLL</Message>
+      <Message>Copying Embree DLLs</Message>
       <Command>xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\embree.dll" "$(OutDir)"
 xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbb.dll" "$(OutDir)"
 xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDir)"</Command>
@@ -517,7 +517,7 @@ xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDi
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <PostBuildEvent>
-      <Message>Copying Embree DLL</Message>
+      <Message>Copying Embree DLLs</Message>
       <Command>xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\embree.dll" "$(OutDir)"
 xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbb.dll" "$(OutDir)"
 xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDir)"</Command>
@@ -567,7 +567,7 @@ xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDi
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
     </ClCompile>
     <PostBuildEvent>
-      <Message>Copying Embree DLL</Message>
+      <Message>Copying Embree DLLs</Message>
       <Command>xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\embree.dll" "$(OutDir)"
 xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbb.dll" "$(OutDir)"
 xcopy /dy "$(SolutionDir)3rd party\Embree v2.9.0 x64\bin\tbbmalloc.dll" "$(OutDir)"</Command>
