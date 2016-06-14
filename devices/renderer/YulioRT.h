@@ -34,7 +34,7 @@ namespace Yulio {
 	};
 
 	struct ParamsRT {
-		char *renderer = "pathtracer";		// type of the renderer (don't change)
+		char *renderer = "pathtracer";		// type of the renderer (currently supported values are "pathtracer" and "gpt")
 		int size = 1536; 					// single cube face image resolution (should be 1:1 ration; for testing puposes, can be reduced to speed up the rendering)
 		int depth = 10; 					// max number of secondary ray bounces (will mostly affect translucent materials, e.g.glass)
 		float tMaxShadowRay = 120.f; 		// max length of shadow rays (will affect how dark / bright the scene will appear in the rendered image)
