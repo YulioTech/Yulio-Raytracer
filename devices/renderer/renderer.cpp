@@ -495,7 +495,7 @@ namespace embree
 						g_device->rtGetFloat3(stereoCubeCamera, "origin", camPos.x, camPos.y, camPos.z);
 
 						for (size_t j = 0; j < g_prims.size(); ++j)
-							g_device->rtUpdatePrimitive(scene, j, g_prims[i], camPos, g_camUp);
+							g_device->rtUpdatePrimitive(scene, j, g_prims[j], camPos, g_camUp);
 
 						g_device->rtCommit(scene);
 					}
@@ -679,7 +679,7 @@ namespace embree
 
 					g_device->rtRenderFrame(g_renderer, stereoCubeCamera, scene, g_tonemapper, g_frameBuffer, 0);
 
-					for (int i = 0; i < g_numBuffers; i++)
+					for (int j = 0; j < g_numBuffers; ++j)
 						g_device->rtSwapBuffers(g_frameBuffer);
 
 					std::string cubeFaceFileName = std::string(fileName.path()) + "\\" + fileName.name() + "_";
