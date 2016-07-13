@@ -133,20 +133,22 @@ namespace embree
 
 			/* Configuration. */
 	private:
-		size_t maxDepth;               //!< Maximal recursion depth (1=primary ray only)
-		size_t rrDepth;					   /* Depth to begin using russian roulette */
+		size_t maxDepth;				//!< Maximal recursion depth (1=primary ray only)
+		size_t rrDepth;					//!< Depth to begin using russian roulette
 		size_t minDepth = 1;			//!< Minimal recursion depth (has to be greater than 0 to avoid "empty" images)
-		float minContribution;         //!< Minimal contribution of a path to the pixel.
-		float epsilon;                 //!< Epsilon to avoid self intersections.
+		float minContribution;			//!< Minimal contribution of a path to the pixel.
+		float epsilon;					//!< Epsilon to avoid self intersections.
 		float tMaxShadowRay;			//!< Max length of a shadow ray (i.e. an actual ray used to test for occlusion, not just any secondary, aka "shadow", ray)
-		Ref<Image> backplate;          //!< High resolution background.
-		float glossyShiftThreshold;			//!< Threshold value below which a BRDF at a currently evaluated vertex is considered Glossy (otherwise its' considered Diffuse)
+		float tMaxShadowJitter;			//!< Percentage of the tMaxShadowRay that it can randomly vary by.
+		Vector3f up;					//!< Up vector in world coordinates.
+		Ref<Image> backplate;			//!< High resolution background.
+		float glossyShiftThreshold;		//!< Threshold value below which a BRDF at a currently evaluated vertex is considered Glossy (otherwise its' considered Diffuse)
 
 		/*! Random variables. */
 	private:
-		int lightSampleID;            //!< 2D random variable to sample the light source.
-		int firstScatterSampleID;     //!< 2D random variable to sample the BRDF.
-		int firstScatterTypeSampleID; //!< 1D random variable to sample the BRDF type to choose.
+		int lightSampleID;				//!< 2D random variable to sample the light source.
+		int firstScatterSampleID;		//!< 2D random variable to sample the BRDF.
+		int firstScatterTypeSampleID;	//!< 1D random variable to sample the BRDF type to choose.
 		std::vector<int> precomputedLightSampleID;  //!< ID of precomputed light samples for lights that need pre-computations.
 	};
 }

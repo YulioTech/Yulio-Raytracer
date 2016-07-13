@@ -199,6 +199,7 @@ namespace embree
 	bool g_toeIn = false;
 	float g_zeroParallaxDistance = g_eyeSeparation * 30.f;
 	float g_tMaxShadowRay = inf;
+	float g_tMaxShadowJitter = .2f;
 	float g_sceneScale = 1.f;
 
 	/* rendering device and global handles */
@@ -298,6 +299,8 @@ namespace embree
 		g_renderer = g_device->rtNewRenderer("pathtracer");
 		if (g_depth >= 0) g_device->rtSetInt1(g_renderer, "maxDepth", g_depth);
 		g_device->rtSetFloat1(g_renderer, "tMaxShadowRay", g_tMaxShadowRay);
+		g_device->rtSetFloat1(g_renderer, "tMaxShadowJitter", g_tMaxShadowJitter);
+		g_device->rtSetFloat3(g_renderer, "up", g_camUp.x, g_camUp.y, g_camUp.z);
 		g_device->rtSetInt1(g_renderer, "sampler.spp", g_spp);
 		g_device->rtCommit(g_renderer);
 
@@ -1153,9 +1156,15 @@ namespace embree
 				g_device->rtCommit(g_renderer);
 			}
 
-			/* set recursion depth */
+			/* set max shadow ray length */
 			else if (tag == "-tMaxShadowRay") {
-				g_device->rtSetFloat1(g_renderer, "tMaxShadowRay", g_tMaxShadowRay = cin->getInt() * g_sceneScale);
+				g_device->rtSetFloat1(g_renderer, "tMaxShadowRay", g_tMaxShadowRay = cin->getFloat() * g_sceneScale);
+				g_device->rtCommit(g_renderer);
+			}
+
+			/* set max shadow ray length jitter percentage */
+			else if (tag == "-tMaxShadowJitter") {
+				g_device->rtSetFloat1(g_renderer, "tMaxShadowJitter", g_tMaxShadowJitter = cin->getFloat());
 				g_device->rtCommit(g_renderer);
 			}
 

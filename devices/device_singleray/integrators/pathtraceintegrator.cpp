@@ -26,6 +26,8 @@ namespace embree
 		minContribution = parms.getFloat("minContribution", .02f);
 		epsilon = parms.getFloat("epsilon", 32.f) * float(ulp);
 		tMaxShadowRay = parms.getFloat("tMaxShadowRay", std::numeric_limits<float>::infinity());
+		tMaxShadowJitter = parms.getFloat("tMaxShadowJitter", .15f);
+		up = parms.getVector3f("up", Vector3f(0.f, 1.f, 0.f));
 		backplate = parms.getImage("backplate");
 		strictNormals = parms.getInt("strictNormals", true);
 	}
@@ -133,7 +135,7 @@ namespace embree
 
 					/*! Ignore zero radiance or illumination from the back. */
 					//if (ls.L == Color(zero) || ls.wi.pdf == 0.0f || dot(dg.Ns,Vector3f(ls.wi)) <= 0.0f) continue; 
-					if (ls.L == Color(zero) || ls.wi.pdf == 0.0f) continue;
+					if (ls.L == Color(zero) || ls.wi.pdf == 0.f) continue;
 
 					/*! Evaluate BRDF */
 					Color brdf = brdfs.eval(wo, dg, ls.wi, directLightingBRDFTypes);
@@ -146,7 +148,14 @@ namespace embree
 					/*! Test for shadows. */
 					// Lev: limit the max shadow ray length to introduce some fake direct lighting into the scene.
 					// This is done to allow the lighting of the indoor scenes without having to use actually use any additional lights.
-					ls.tMax = tMaxShadowRay;
+					// Note, that we assume that the light can come only from the hemisphere tangent to the floor plane (defined by the Up vector)
+					const float shadowRayJitterLength = 2.f * tMaxShadowRay * tMaxShadowJitter * random<float>() - tMaxShadowRay * tMaxShadowJitter;
+					ls.tMax = tMaxShadowRay + shadowRayJitterLength;
+					const float dotProduct = dot(ls.wi, up);
+					if (dotProduct <= 0.f) {
+						// Gradually increase the length of the shadow rays (up to 100 times the original value) to suppress light coming from below the floor plane.
+						ls.tMax += tMaxShadowRay * 100.f * smoothstep(0.f, 1.f, abs(dotProduct));
+					}
 					Ray shadowRay(dg.P, ls.wi, dg.error*epsilon, ls.tMax - dg.error*epsilon, lightPath.lastRay.time, dg.shadowMask);
 					//bool inShadow = scene->intersector->occluded(shadowRay);
 					rtcOccluded(scene->scene, (RTCRay&)shadowRay);
