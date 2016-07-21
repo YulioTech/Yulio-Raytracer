@@ -7,4 +7,6 @@ ReleaseAVX2
 ReleaseAVX
 Release
 Debug
-/models
+Debug_DLL
+Release_DLL
+*.ipch

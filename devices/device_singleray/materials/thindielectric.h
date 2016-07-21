@@ -32,11 +32,12 @@ namespace embree
 		/*! Construction from parameters. */
 		ThinDielectric(const Parms& parms) {
 			Kd = parms.getTexture("Kd");
-			s0 = parms.getVec2f("s0", Vec2f(0.0f, 0.0f));
-			ds = parms.getVec2f("ds", Vec2f(1.0f, 1.0f));
+			s0 = parms.getVec2f("s0", Vec2f(0.f, 0.f));
+			ds = parms.getVec2f("ds", Vec2f(1.f, 1.f));
 			transmission = parms.getColor("transmission", one);
 			eta = parms.getFloat("eta", 1.4f);
-			thickness = parms.getFloat("thickness", 0.1f);
+			thickness = parms.getFloat("thickness", .1f);
+			transparency = parms.getFloat("transparency", 1.f);
 		}
 
 		void shade(const Ray& ray, const Medium& currentMedium, const DifferentialGeometry& dg, CompositedBRDF& brdfs) const {
@@ -45,10 +46,17 @@ namespace embree
 			Color4 diffuseColor(transmission.r, transmission.g, transmission.b, 1.f);
 			if (Kd) {
 				diffuseColor = Kd->get(ds*dg.st + s0);
-				//diffuseColor = Color4(1.f - diffuseColor.r, 1.f - diffuseColor.g, 1.f - diffuseColor.b, 1.f - diffuseColor.a);
+			//	//diffuseColor = Color4(1.f - diffuseColor.r, 1.f - diffuseColor.g, 1.f - diffuseColor.b, 1.f - diffuseColor.a);
 			}
 
-			brdfs.add(NEW_BRDF(ThinDielectricTransmission)(1.0f, eta, diffuseColor, thickness));
+			diffuseColor = Color4(
+				diffuseColor.r * transparency,
+				diffuseColor.g * transparency,
+				diffuseColor.b * transparency,
+				diffuseColor.a * transparency
+				);
+
+			brdfs.add(NEW_BRDF(ThinDielectricTransmission)(1.f, eta, diffuseColor, thickness));
 		}
 
 	protected:
@@ -58,6 +66,7 @@ namespace embree
 		Color transmission;   //!< Transmission coefficient of material.
 		float eta;            //!< Refraction index of material.
 		float thickness;      //!< Thickness of material layer.
+		float transparency;		//!< Transparency modulation value.
 	};
 }
 

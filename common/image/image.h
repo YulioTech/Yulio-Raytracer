@@ -130,7 +130,8 @@ namespace embree
 	Ref<Image> loadPFM(const FileName& fileName);
 
 	/*! Loads image from ANY supported graphics file. */
-	Ref<Image> loadFreeImage(const FileName& fileName);
+	Ref<Image> loadFreeImage(const FileName& fileName, float scale = 1.f, bool flipVertical = false);
+	Ref<Image> loadFreeImage(const uint8_t* data, const size_t dataLength, float scale = 1.f, bool flipVertical = false, bool flipHorizontal = false);
 
 	/*! Store image to ANY supported graphics file. */
 	bool storeFreeImage(const Ref<Image>& image, const FileName& fileName, int quality = 90);

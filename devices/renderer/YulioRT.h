@@ -41,11 +41,12 @@ namespace Yulio {
 		int spp = 256;						// number of samples per pixel(the higher the number, the less noisy the rendered image will be; has to be a pow of 2 - otherwise will be floored to the nearest power of 2)
 		float ambientlight[3] = { .83f, .95f, .98f }; // lighter blue sky color
 		float eyeSeparation = 2.5f;			// distance between the eyes in inches (2.5 is the default)
-		bool toeIn = true; 					// forces a toe - in stereoscopic camera if present, with the zero parallax value specified separately
+		bool toeIn = true; 					// forces a toe-in stereoscopic camera if present, with the zero parallax value specified separately
 		float zeroParallax = 75.f;			// zero parallax depth from the view point in inches(only active when the toeIn flag is present)
 		int jpegQuality = 90;				// JPEG compression quality (1-100 range)
 		bool debug = false;					// if present, enables debug the debug mode (i.e. keeping the intermediate image files, more detailed logging, etc.)
 		int threadsPriority = 0;			// worker threads priority as defined in Windows SetThreadPriorityfunction (i.e. 0 - is normal, -1 - below normal, etc.)
+		bool waterMark = false;				// if true, adds a watermark to the rendered images
 	};
 
 	DllApi bool StartRT(const char* colladaFile, const ParamsRT* params);

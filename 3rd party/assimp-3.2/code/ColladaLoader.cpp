@@ -1364,47 +1364,63 @@ void ColladaLoader::FillMaterials( const ColladaParser& pParser, aiScene* /*pSce
 			&& effect.mTransparency >= 0.f && effect.mTransparency <= 1.f) {
 			switch (effect.mBlendMode) {
 			case Collada::Effect::BlendMode::A_ONE:
-				effect.mTransparent.r = effect.mTransparent.a * effect.mTransparency;
-				effect.mTransparent.g = effect.mTransparent.a * effect.mTransparency;
-				effect.mTransparent.b = effect.mTransparent.a * effect.mTransparency;
-				effect.mTransparent.a = effect.mTransparent.a * effect.mTransparency;
-				effect.mTransparency = effect.mTransparent.a * effect.mTransparency;
+				//effect.mTransparent.r = effect.mTransparent.a * effect.mTransparency;
+				//effect.mTransparent.g = effect.mTransparent.a * effect.mTransparency;
+				//effect.mTransparent.b = effect.mTransparent.a * effect.mTransparency;
+				//effect.mTransparent.a = effect.mTransparent.a * effect.mTransparency;
+				//effect.mTransparency = effect.mTransparent.a * effect.mTransparency;
+				effect.mTransparent.r = effect.mTransparent.a;
+				effect.mTransparent.g = effect.mTransparent.a;
+				effect.mTransparent.b = effect.mTransparent.a;
+				effect.mTransparent.a = effect.mTransparent.a;
 				break;
 
 			case Collada::Effect::BlendMode::RGB_ZERO:
-			// If blending mode is not present, assume RGB_ZERO
-			case Collada::Effect::BlendMode::Undefined:
-			default:
 			{
 				const auto luminance = (effect.mTransparent.r * .212671f) +
 					(effect.mTransparent.g * .715160f) +
 					(effect.mTransparent.b * .072169f);
-				effect.mTransparent.r = 1.f - effect.mTransparent.r * effect.mTransparency;
-				effect.mTransparent.g = 1.f - effect.mTransparent.g * effect.mTransparency;
-				effect.mTransparent.b = 1.f - effect.mTransparent.b * effect.mTransparency;
-				effect.mTransparent.a = (1.f - luminance) * effect.mTransparency;
-				effect.mTransparency = (1.f - luminance) * effect.mTransparency;
+				//effect.mTransparent.r = 1.f - effect.mTransparent.r * effect.mTransparency;
+				//effect.mTransparent.g = 1.f - effect.mTransparent.g * effect.mTransparency;
+				//effect.mTransparent.b = 1.f - effect.mTransparent.b * effect.mTransparency;
+				//effect.mTransparent.a = 1.f - luminance * effect.mTransparency;
+				//effect.mTransparency = 1.f - luminance * effect.mTransparency;
+				effect.mTransparent.r = 1.f - effect.mTransparent.r;
+				effect.mTransparent.g = 1.f - effect.mTransparent.g;
+				effect.mTransparent.b = 1.f - effect.mTransparent.b;
+				effect.mTransparent.a = 1.f - luminance;
 			}
 				break;
 
 			case Collada::Effect::BlendMode::A_ZERO:
-				effect.mTransparent.r = 1.f - effect.mTransparent.a * effect.mTransparency;
-				effect.mTransparent.g = 1.f - effect.mTransparent.a * effect.mTransparency;
-				effect.mTransparent.b = 1.f - effect.mTransparent.a * effect.mTransparency;
-				effect.mTransparent.a = 1.f - effect.mTransparent.a * effect.mTransparency;
-				effect.mTransparency = 1.f - effect.mTransparent.a * effect.mTransparency;
+				//effect.mTransparent.r = 1.f - effect.mTransparent.a * effect.mTransparency;
+				//effect.mTransparent.g = 1.f - effect.mTransparent.a * effect.mTransparency;
+				//effect.mTransparent.b = 1.f - effect.mTransparent.a * effect.mTransparency;
+				//effect.mTransparent.a = 1.f - effect.mTransparent.a * effect.mTransparency;
+				//effect.mTransparency = 1.f - effect.mTransparent.a * effect.mTransparency;
+				effect.mTransparent.r = 1.f - effect.mTransparent.a;
+				effect.mTransparent.g = 1.f - effect.mTransparent.a;
+				effect.mTransparent.b = 1.f - effect.mTransparent.a;
+				effect.mTransparent.a = 1.f - effect.mTransparent.a;
 				break;
 
 			case Collada::Effect::BlendMode::RGB_ONE:
+				// If blending mode is not present, assume RGB_ZERO
+			case Collada::Effect::BlendMode::Undefined:
+			default:
 			{
 				const auto luminance = (effect.mTransparent.r * .212671f) +
 										(effect.mTransparent.g * .715160f) +
 										(effect.mTransparent.b * .072169f);
-				effect.mTransparent.r = effect.mTransparent.r * effect.mTransparency;
-				effect.mTransparent.g = effect.mTransparent.g * effect.mTransparency;
-				effect.mTransparent.b = effect.mTransparent.b * effect.mTransparency;
-				effect.mTransparent.a = luminance * effect.mTransparency;
-				effect.mTransparency = luminance * effect.mTransparency;
+				//effect.mTransparent.r = effect.mTransparent.r * effect.mTransparency;
+				//effect.mTransparent.g = effect.mTransparent.g * effect.mTransparency;
+				//effect.mTransparent.b = effect.mTransparent.b * effect.mTransparency;
+				//effect.mTransparent.a = luminance * effect.mTransparency;
+				//effect.mTransparency = luminance * effect.mTransparency;
+				effect.mTransparent.r = effect.mTransparent.r;
+				effect.mTransparent.g = effect.mTransparent.g;
+				effect.mTransparent.b = effect.mTransparent.b;
+				effect.mTransparent.a = luminance;
 			}
 				break;
 			}

@@ -28,6 +28,7 @@
 #include <atomic>
 #include <mutex>
 #include "YulioRT.h" // Exported async DLL API definition 
+#include "resource.h"
 
 #if defined(__WIN32__) && !defined(PTHREADS_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -42,6 +43,57 @@ namespace Yulio {
 	// A shared mutex used by the Yulio code
 	std::mutex g_yulio_mutex;
 #define YULIO_CRITIAL_SECTION lock_guard<std::mutex> guard(Yulio::g_yulio_mutex)
+
+	// Load the water mark image
+	Ref<Image> LoadWaterMark(uint32_t idbIndex, const float scale = 1.f) {
+#if 1
+
+#if defined(_USRDLL)
+		const HMODULE hMod = GetModuleHandle("rt.dll");
+#else 
+		const HMODULE hMod = GetModuleHandle("rt.exe");
+#endif
+		if (!hMod) {
+			//throw std::runtime_error("Failed to find module.");
+			return null;
+		}
+
+		const HRSRC rsrcData = FindResource(hMod, MAKEINTRESOURCE(idbIndex), RT_RCDATA);
+		if (!rsrcData) {
+			//throw std::runtime_error("Failed to find resource.");
+			return null;
+		}
+
+		const size_t rsrcDataSize = SizeofResource(hMod, rsrcData);
+		if (rsrcDataSize <= 0) {
+			//throw std::runtime_error("Size of resource is 0.");
+			return null;
+		}
+
+		const HGLOBAL grsrcData = LoadResource(hMod, rsrcData);
+		if (!grsrcData) {
+			//throw std::runtime_error("Failed to load resource.");
+			return null;
+		}
+
+		const uint8_t *data = (uint8_t *)LockResource(grsrcData);
+		if (!data) {
+			throw std::runtime_error("Failed to lock resource.");
+			return null;
+		}
+
+		Ref<Image> waterMarkImage = loadFreeImage(data, rsrcDataSize, scale, true, true);
+
+		UnlockResource(grsrcData);
+#else
+		const FileName sceneFileName = g_sceneFileName;
+		std::string waterMarkFileName = std::string(sceneFileName.path()) + "\\" + "logo.png";
+		Ref<Image> waterMarkImage = loadFreeImage(waterMarkFileName, scale, true);
+#endif
+		return waterMarkImage;
+	}
+
+	static Ref<Image> g_waterMarkImage = LoadWaterMark(IDB_WATERMARK_WHITE_TRANSP_PNG, .1f);
 
 	class YulioStatusTracker {
 	private:
@@ -201,6 +253,7 @@ namespace embree
 	float g_tMaxShadowRay = inf;
 	float g_tMaxShadowJitter = .2f;
 	float g_sceneScale = 1.f;
+	bool g_waterMark = false;
 
 	/* rendering device and global handles */
 	Handle<Device::RTRenderer> g_renderer = nullptr;
@@ -482,7 +535,7 @@ namespace embree
 				const size_t desiredCameraIndex = 2;
 				const size_t testCameraIndex = min(desiredCameraIndex, g_stereoCubeCameras.size()/12 - 1);
 				const size_t testViewBegin = testCameraIndex * 12;
-				const size_t testViewEnd = (testCameraIndex + 1) * 12 - 11;
+				const size_t testViewEnd = (testCameraIndex + 1) * 12;// -11;
 				for (size_t i = testViewBegin; i < testViewEnd; ++i) {
 #else
 				for (size_t i = 0; i < g_stereoCubeCameras.size() && !Yulio::yulioStop; ++i) {
@@ -522,8 +575,9 @@ namespace embree
 
 					g_device->rtRenderFrame(g_renderer, stereoCubeCamera, scene, g_tonemapper, g_frameBuffer, 0);
 
-					for (int j = 0; j < g_numBuffers; ++j)
+					for (int j = 0; j < g_numBuffers; ++j) {
 						g_device->rtSwapBuffers(g_frameBuffer);
+					}
 
 					// Override the file name
 					const FileName fileName = g_sceneFileName;
@@ -576,6 +630,26 @@ namespace embree
 						g_device->rtUnmapFrameBuffer(g_frameBuffer);
 
 						stereCubeFaceImages.push_back(image);
+
+						// Only add watermark to the front, back & side faces
+						if (g_waterMark && Yulio::g_waterMarkImage && (cubeFaceIndex % 6) < 4) {
+							for (size_t y = 0; y < Yulio::g_waterMarkImage->height; ++y) {
+								for (size_t x = 0; x < Yulio::g_waterMarkImage->width; ++x) {
+									const Color4 wc = Yulio::g_waterMarkImage->get(x, y);
+
+									const int xDst = x + (image->width - Yulio::g_waterMarkImage->width) * .5f;
+									const int yDst = y + (image->height - Yulio::g_waterMarkImage->height) * .5f;
+
+									if (xDst < 0 || xDst >= image->width
+										|| yDst < 0 || yDst >= image->height)
+										continue;
+
+									const Color4 ic = image->get(xDst, yDst);
+									const Color4 blended = (1.f - wc.a) * ic + wc.a * wc;
+									image->set(xDst, yDst, blended);
+								}
+							}
+						}
 
 						// Store the cube face image to disk if needed (for debugging purposes)
 						if (g_debugging) {
@@ -1084,7 +1158,8 @@ namespace embree
 			else if (tag == "-radius") g_camRadius = cin->getFloat();
 			else if (tag == "-stereo") g_stereo = true;
 			else if (tag == "-toeIn")  g_toeIn = true;
-			else if (tag == "-eyeSeparation") g_eyeSeparation = cin->getFloat();
+			else if (tag == "-waterMark")		g_waterMark = true;
+			else if (tag == "-eyeSeparation")	g_eyeSeparation = cin->getFloat();
 			else if (tag == "-zeroParallax")    g_zeroParallaxDistance = cin->getFloat();
 
 			/* frame buffer size */
@@ -1496,6 +1571,8 @@ namespace Yulio {
 		{ argv.push_back("-eyeSeparation"); argv.push_back(to_string(currentParams.eyeSeparation)); }
 		// toeIn
 		{ if (currentParams.toeIn) argv.push_back("-toeIn"); }
+		// waterMark
+		{ if (currentParams.waterMark) argv.push_back("-waterMark"); }
 		// eyeSeparation
 		{ argv.push_back("-zeroParallax"); argv.push_back(to_string(currentParams.zeroParallax)); }
 		// debug

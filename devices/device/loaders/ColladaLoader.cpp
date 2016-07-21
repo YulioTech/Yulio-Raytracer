@@ -83,7 +83,7 @@ namespace embree {
 	DAELoader::DAELoader(const FileName& fileName) {
 
 		defaultMaterial = g_device->rtNewMaterial("matte");
-		g_device->rtSetFloat3(defaultMaterial, "reflectance", 0.5f, 0.5f, 0.5f);
+		g_device->rtSetFloat3(defaultMaterial, "reflectance", .5f, .5f, .5f);
 		g_device->rtCommit(defaultMaterial);
 
 		const std::string fn(fileName.c_str());
@@ -216,12 +216,18 @@ namespace embree {
 			}
 			
 			// Diffuse color
-			aiColor4D diffuseColor(.5f, .0f, .0f, 1.f);
+			//aiColor4D diffuseColor(1.f, .0f, 1.f, 1.f);
 			//aiColor4D diffuseColor((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, 1.f);
+			aiColor4D diffuseColor(.5f, .5f, .5f, 1.f);
 			if (textureFilePath == "") {
 				if (AI_SUCCESS == aiGetMaterialColor(aiMtl, AI_MATKEY_COLOR_DIFFUSE, &diffuseColor)) {
-					//materialType = "Matte";
-					materialType = "Uber";
+					if (diffuseColor.a < 1.f) {
+						materialType = "ThinDielectric";
+					}
+					else {
+						//materialType = "Matte";
+						materialType = "Uber";
+					}
 				}
 			}
 
@@ -248,20 +254,25 @@ namespace embree {
 			//	}
 			//}
 
-			//// Transparency (this is different from transmission below, which is aka "transparent" in COLLADA standard, and is recalculated based on the COLLADA v1.5 specs during parsing)
-			//{
-			//	unsigned int max = 1;
-			//	if (AI_SUCCESS == aiGetMaterialFloatArray(srcMtl, AI_MATKEY_OPACITY, &material.transparency, &max)) {
-
-			//	}
-			//}
+			// Transparency (this is different from transmission below, which is aka "transparent" in COLLADA standard, and is recalculated based on the COLLADA v1.5 specs during parsing)
+			
+			float transparency = 1.f;
+			if (1) {
+				if (AI_SUCCESS == aiGetMaterialFloat(aiMtl, AI_MATKEY_OPACITY, &transparency)) {
+					if (transparency < 1.f) {
+						materialType = "ThinDielectric";
+					}
+				}
+			}
 
 			// Transmission color
-			aiColor4D transmissionColor(.0f, .0f, .0f, 1.f);
+			aiColor4D transmissionColor(1.f, 1.f, 1.f, 1.f);
 			if (1) {
-				if (AI_SUCCESS == aiGetMaterialColor(aiMtl, AI_MATKEY_COLOR_TRANSPARENT, &transmissionColor)
-					&& transmissionColor.a < 1.f) {
-					materialType = "ThinDielectric";
+				if (AI_SUCCESS == aiGetMaterialColor(aiMtl, AI_MATKEY_COLOR_TRANSPARENT, &transmissionColor)) {
+					if (transmissionColor.a < 1.f
+						//&& (transmissionColor.r < 1.f || transmissionColor.g < 1.f || transmissionColor.b < 1.f)
+						)
+						materialType = "ThinDielectric";
 				}
 			}
 
@@ -311,7 +322,15 @@ namespace embree {
 			}
 			else if (materialType == "Uber") {
 				if (textureFilePath != "") {
-					g_device->rtSetTexture(material, "Kd", rtLoadTexture(FileName(textureFilePath)));
+					std::ifstream f(textureFilePath);
+					const bool fExists = f.good();
+					f.close();
+					if (fExists) {
+						g_device->rtSetTexture(material, "Kd", rtLoadTexture(FileName(textureFilePath)));
+					}
+					else {
+						g_device->rtSetFloat3(material, "diffuse", diffuseColor.r, diffuseColor.g, diffuseColor.b);
+					}
 				}
 				else {
 					g_device->rtSetFloat3(material, "diffuse", diffuseColor.r, diffuseColor.g, diffuseColor.b);
@@ -342,15 +361,24 @@ namespace embree {
 			else if (materialType == "ThinDielectric") {
 				// ToDo: the handling of transmission needs further investigation!
 				if (textureFilePath != "") {
-					g_device->rtSetTexture(material, "Kd", rtLoadTexture(FileName(textureFilePath), "bilinear", false));
+					std::ifstream f(textureFilePath);
+					const bool fExists = f.good();
+					f.close();
+					if (fExists) {
+						g_device->rtSetTexture(material, "Kd", rtLoadTexture(FileName(textureFilePath), "bilinear", false));
+					}
+					else {
+						g_device->rtSetFloat3(material, "transmission", diffuseColor.r, diffuseColor.g, diffuseColor.b);
+					}
 				}
 				else {
-					g_device->rtSetFloat3(material, "transmission", diffuseColor.r * (1.f - transmissionColor.r), diffuseColor.g * (1.f - transmissionColor.g), diffuseColor.b * (1.f - transmissionColor.b));
+					//g_device->rtSetFloat3(material, "transmission", diffuseColor.r * (1.f - transmissionColor.r), diffuseColor.g * (1.f - transmissionColor.g), diffuseColor.b * (1.f - transmissionColor.b));
+					//g_device->rtSetFloat3(material, "transmission", diffuseColor.r * transmissionColor.r, diffuseColor.g * transmissionColor.g, diffuseColor.b * transmissionColor.b);
+					g_device->rtSetFloat3(material, "transmission", diffuseColor.r, diffuseColor.g, diffuseColor.b);
 				}
-				//g_device->rtSetFloat3(material, "transmission", 1.f - transmissionColor.r, 1.f - transmissionColor.g, 1.f - transmissionColor.b);
-				//g_device->rtSetFloat3(material, "transmission", transmissionColor.r, transmissionColor.g, transmissionColor.b);
 				g_device->rtSetFloat1(material, "eta", 1.4f);
 				g_device->rtSetFloat1(material, "thickness", 1.f);
+				g_device->rtSetFloat1(material, "transparency", transparency);
 				render = true;
 			}
 
