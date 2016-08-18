@@ -230,7 +230,7 @@ namespace embree
 		light_mask_t illumMask;    //!< bit mask which light we're interested in
 		light_mask_t shadowMask;   //!< bit mask which light we're interested in
 		Vector3f wi;			   //!< Incident direction in the local shading frame
-		Frame shadingFrame;
+		//Frame shadingFrame;
 	};
 }
 

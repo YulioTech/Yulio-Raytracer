@@ -93,7 +93,7 @@ namespace Yulio {
 		return waterMarkImage;
 	}
 
-	static Ref<Image> g_waterMarkImage = LoadWaterMark(IDB_WATERMARK_WHITE_TRANSP_PNG, .1f);
+	static Ref<Image> g_waterMarkImage = LoadWaterMark(IDB_WATERMARK_PNG, 1.f);
 
 	class YulioStatusTracker {
 	private:
@@ -254,6 +254,7 @@ namespace embree
 	float g_tMaxShadowJitter = .2f;
 	float g_sceneScale = 1.f;
 	bool g_waterMark = false;
+	std::string g_faceCullingMode = "default"; // "default", "forcesingle", "forcedouble"
 
 	/* rendering device and global handles */
 	Handle<Device::RTRenderer> g_renderer = nullptr;
@@ -999,7 +1000,7 @@ namespace embree
 			/* read model from file */
 			else if (tag == "-i") {
 				g_sceneFileName = makeFileName(path, cin->getFileName());
-				std::vector<Handle<Device::RTPrimitive>> prims = rtLoadScene(g_sceneFileName, &g_stereoCubeCameras);
+				std::vector<Handle<Device::RTPrimitive>> prims = rtLoadScene(g_sceneFileName, &g_stereoCubeCameras, g_faceCullingMode);
 				g_prims.insert(g_prims.end(), prims.begin(), prims.end());
 			}
 
@@ -1243,6 +1244,11 @@ namespace embree
 				g_device->rtCommit(g_renderer);
 			}
 
+			/* face culling mode */
+			else if (tag == "-faceCullingMode") {
+				g_faceCullingMode = cin->getString();
+			}
+
 			/* set samples per pixel */
 			else if (tag == "-spp") {
 				g_device->rtSetInt1(g_renderer, "sampler.spp", g_spp = cin->getInt());
@@ -1440,7 +1446,7 @@ namespace embree
 		createGlobalObjects();
 
 		if (g_processingFprCollada) {
-			std::vector<Handle<Device::RTPrimitive>> prims = rtLoadScene(g_sceneFileName, &g_stereoCubeCameras);
+			std::vector<Handle<Device::RTPrimitive>> prims = rtLoadScene(g_sceneFileName, &g_stereoCubeCameras, g_faceCullingMode);
 			g_prims.insert(g_prims.end(), prims.begin(), prims.end());
 		}
 
@@ -1488,7 +1494,7 @@ namespace Yulio {
 		// Note, local prims variable needs to be destroyed (i.e. the vector needs to be cleaned) before clearGlobalObjects is called (i.e. before g_device is deleted),
 		// so we create a local scope for that.
 		{
-			vector<Handle<Device::RTPrimitive>> prims = rtLoadScene(g_sceneFileName, &g_stereoCubeCameras);
+			vector<Handle<Device::RTPrimitive>> prims = rtLoadScene(g_sceneFileName, &g_stereoCubeCameras, g_faceCullingMode);
 			g_prims.insert(g_prims.end(), prims.begin(), prims.end());
 		}
 
@@ -1573,6 +1579,8 @@ namespace Yulio {
 		{ if (currentParams.toeIn) argv.push_back("-toeIn"); }
 		// waterMark
 		{ if (currentParams.waterMark) argv.push_back("-waterMark"); }
+		// face culling mode
+		{ argv.push_back("-faceCullingMode"); argv.push_back(currentParams.faceCullingMode ? currentParams.faceCullingMode : "default"); }
 		// eyeSeparation
 		{ argv.push_back("-zeroParallax"); argv.push_back(to_string(currentParams.zeroParallax)); }
 		// debug
@@ -1581,6 +1589,9 @@ namespace Yulio {
 		Ref<ParseStream> stream = new ParseStream(new CommandLineStream(argv));
 
 		g_threadsPriority = clamp(currentParams.threadsPriority, THREAD_PRIORITY_IDLE, THREAD_PRIORITY_TIME_CRITICAL);
+		// Lev: need to assign the global culling mode here, since it'll be processed inside the workerThreadRT function before the parameters are parsed.
+		// This is a limitation of the current implementation and needs to be addressed in the future (for the sake of consistency).
+		g_faceCullingMode = currentParams.faceCullingMode;
 
 		/*! create embree device */
 		if (!g_device) {

@@ -3,7 +3,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>"c:\Program Files\Intel\Embree v2.8.0 x64\include";$(IncludePath)</IncludePath>
+    <IncludePath>"c:\Program Files\Intel\Embree v2.9.0 x64\include";$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>

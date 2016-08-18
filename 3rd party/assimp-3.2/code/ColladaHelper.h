@@ -363,6 +363,9 @@ struct Mesh
 
     // Submeshes in this mesh, each with a given material
     std::vector<SubMesh> mSubMeshes;
+
+	// Rhino extensions support
+	bool mDoubleSided = false;
 };
 
 /** Which type of primitives the ReadPrimitives() function is going to read */

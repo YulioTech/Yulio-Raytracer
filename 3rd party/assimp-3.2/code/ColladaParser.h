@@ -152,7 +152,8 @@ namespace Assimp
         bool ReadGeometry( Collada::Mesh* pMesh);
         
         /** Reads a mesh from the geometry library */
-        bool ReadMesh( Collada::Mesh* pMesh);
+        bool ReadMesh(Collada::Mesh* pMesh);
+		bool ReadMeshExtra(Collada::Mesh *pMesh);
         
         /** Reads a source element - a combination of raw data and an accessor defining
          * things that should not be redefinable. Yes, that's another rant.

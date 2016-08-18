@@ -65,12 +65,11 @@ namespace embree
 		texture_map = nullptr;
 	}
 
-	std::vector<Handle<Device::RTPrimitive>> rtLoadScene(const FileName &fileName, std::vector<Handle<Device::RTCamera>> *cameras)
-	{
-		std::string ext = strlwr(fileName.ext());
+	std::vector<Handle<Device::RTPrimitive>> rtLoadScene(const FileName &fileName, std::vector<Handle<Device::RTCamera>> *cameras, const std::string& faceCullingMode) {
+		const std::string ext = strlwr(fileName.ext());
 		if (ext == "obj") return loadOBJ(fileName);
 		if (ext == "xml") return loadXML(fileName);
-		if (ext == "dae") return loadDAE(fileName, *cameras);
+		if (ext == "dae") return loadDAE(fileName, *cameras, faceCullingMode);
 		throw std::runtime_error("file format " + ext + " not supported");
 	}
 }

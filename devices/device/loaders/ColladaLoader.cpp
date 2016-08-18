@@ -32,7 +32,14 @@ namespace embree {
 	class DAELoader
 	{
 	public:
-		DAELoader(const FileName& fileName);
+		enum FaceCullingMode {
+			DEFAULT_CULL,
+			FORCE_SINGLE_SIDED,
+			FORCE_DOUBLE_SIDED
+		};
+
+	public:
+		DAELoader(const FileName& fileName, const std::string& faceCullingMode);
 		~DAELoader();
 
 	private:
@@ -58,6 +65,7 @@ namespace embree {
 		std::string basePath;
 		Vector3f sceneMin, sceneMax, sceneCenter;
 		float sceneScale = 1.f;
+		FaceCullingMode faceCullingMode = DEFAULT_CULL;
 
 		// Embree related members
 		struct MaterialInfo {
@@ -80,8 +88,17 @@ namespace embree {
 		std::vector<Handle<Device::RTPrimitive>> primitives;   //!< stores the output scene
 	};
 
-	DAELoader::DAELoader(const FileName& fileName) {
+	DAELoader::DAELoader(const FileName& fileName, const std::string& fcm) {
 
+		if (fcm == "forcesingle") {
+			faceCullingMode = FORCE_SINGLE_SIDED;
+		}
+		else if (fcm == "forcedouble") {
+			faceCullingMode = FORCE_DOUBLE_SIDED;
+		}
+		else {
+			faceCullingMode = DEFAULT_CULL;
+		}
 		defaultMaterial = g_device->rtNewMaterial("matte");
 		g_device->rtSetFloat3(defaultMaterial, "reflectance", .5f, .5f, .5f);
 		g_device->rtCommit(defaultMaterial);
@@ -217,14 +234,15 @@ namespace embree {
 			
 			// Diffuse color
 			//aiColor4D diffuseColor(1.f, .0f, 1.f, 1.f);
-			//aiColor4D diffuseColor((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, 1.f);
 			aiColor4D diffuseColor(.5f, .5f, .5f, 1.f);
+			//aiColor4D diffuseColor((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, 1.f);
 			if (textureFilePath == "") {
 				if (AI_SUCCESS == aiGetMaterialColor(aiMtl, AI_MATKEY_COLOR_DIFFUSE, &diffuseColor)) {
-					if (diffuseColor.a < 1.f) {
-						materialType = "ThinDielectric";
-					}
-					else {
+					//if (diffuseColor.a < 1.f) {
+					//	materialType = "ThinDielectric";
+					//}
+					//else
+					{
 						//materialType = "Matte";
 						materialType = "Uber";
 					}
@@ -232,11 +250,26 @@ namespace embree {
 			}
 
 			
-			// Specular color
+			// Specular color & intensity (shininess)
 			aiColor4D specularColor(.0f, .0f, .0f, 1.f);
+			float shininess = 0.f;
 			if (1) {
 				if (AI_SUCCESS == aiGetMaterialColor(aiMtl, AI_MATKEY_COLOR_SPECULAR, &specularColor)) {
-					//materialType = "Plastic";
+				}
+				if (AI_SUCCESS == aiGetMaterialFloat(aiMtl, AI_MATKEY_SHININESS_STRENGTH, &shininess)) {
+					shininess = clamp(shininess, 0.f, 1.f);
+				}
+			}
+
+			// Perfect mirror color & intensity
+			aiColor4D reflectiveColor(.0f, .0f, .0f, 1.f);
+			float reflectivity = 0.f;
+			if (1) {
+				if (AI_SUCCESS == aiGetMaterialColor(aiMtl, AI_MATKEY_COLOR_REFLECTIVE, &reflectiveColor)) {
+				}
+				if (AI_SUCCESS == aiGetMaterialFloat(aiMtl, AI_MATKEY_REFLECTIVITY, &reflectivity)) {
+					// Lev: reflectivity value is already inverted coming from Rhino, i.e. it actually represents roughness
+					reflectivity = 1.f - clamp(reflectivity, 0.f, 1.f);
 				}
 			}
 
@@ -300,22 +333,26 @@ namespace embree {
 			//	}
 			//}
 
-			//// Two-sided flag
-			//{
-			//	unsigned int max = 1;
-			//	int ts;
-			//	if (AI_SUCCESS == aiGetMaterialIntegerArray(srcMtl, AI_MATKEY_TWOSIDED, &ts, &max)) {
-			//		material.twosided = ts != 0;
-			//	}
-			//}
+			// Two-sided flag
+			bool doubleSided = false;
+			{
+				unsigned int max = 1;
+				int ts;
+				if (AI_SUCCESS == aiGetMaterialIntegerArray(aiMtl, AI_MATKEY_TWOSIDED, &ts, &max)) {
+					doubleSided = ts != 0;
+				}
+			}
 
-			bool cullBackFaces = true;
+			// Lev: do not cull if the material is double-faced; otherwise always cull.
+			const bool cullBackFaces = doubleSided ? false : true;
 			bool render = true;
 #if 0
 			Handle<Device::RTMaterial> material = defaultMaterial;
 #else
 			// Create a new material with an appropriate type
 			Handle<Device::RTMaterial> material = g_device->rtNewMaterial(materialType.c_str());
+
+			//materialType = "Uber";
 
 			if (materialType == "MatteTextured") {
 				g_device->rtSetTexture(material, "Kd", rtLoadTexture(FileName(textureFilePath)));
@@ -335,10 +372,13 @@ namespace embree {
 				else {
 					g_device->rtSetFloat3(material, "diffuse", diffuseColor.r, diffuseColor.g, diffuseColor.b);
 				}
-				const auto specIntensity = (specularColor.r * .212671) +
-					(specularColor.g * .715160) +
-					(specularColor.b * .072169);
-				g_device->rtSetFloat1(material, "roughness", 1.f - specIntensity);
+				//const auto specIntensity = (specularColor.r * .212671) +
+				//	(specularColor.g * .715160) +
+				//	(specularColor.b * .072169);
+				//g_device->rtSetFloat1(material, "roughness", 1.f - specIntensity);
+				g_device->rtSetFloat1(material, "roughness", 1.f - shininess);
+				g_device->rtSetFloat1(material, "reflectivity", reflectivity);
+
 
 				//cullBackFaces = false;
 			}
@@ -347,10 +387,11 @@ namespace embree {
 			}
 			else if (materialType == "Plastic") {
 				g_device->rtSetFloat3(material, "pigmentColor", diffuseColor.r, diffuseColor.g, diffuseColor.b);
-				const auto specIntensity = (specularColor.r * .212671) +
-					(specularColor.g * .715160) +
-					(specularColor.b * .072169);
-				g_device->rtSetFloat1(material, "roughness", 1.f - specIntensity);
+				//const auto specIntensity = (specularColor.r * .212671) +
+				//	(specularColor.g * .715160) +
+				//	(specularColor.b * .072169);
+				//g_device->rtSetFloat1(material, "roughness", 1.f - specIntensity);
+				g_device->rtSetFloat1(material, "roughness", 1.f - shininess);
 			}
 			else if (materialType == "Dielectric") {
 				g_device->rtSetFloat3(material, "transmission", transmissionColor.r, transmissionColor.g, transmissionColor.b);
@@ -590,7 +631,22 @@ namespace embree {
 			Handle<Device::RTData> dataIndices = g_device->rtNewData("immutable", numTriangles * sizeof(Vec3i), (numTriangles ? &indices[0] : nullptr));
 
 			const auto material = materialMap[aimesh->mMaterialIndex].material;
-			const auto cullBackFaces = materialMap[aimesh->mMaterialIndex].cullBackFaces;
+
+			bool cullBackFaces;
+			switch (faceCullingMode)
+			{
+			case embree::DAELoader::DEFAULT_CULL:
+			default:
+				// Lev: double-sidedness can be defined on either a material or mesh level.
+				cullBackFaces = materialMap[aimesh->mMaterialIndex].cullBackFaces && (aimesh->mDoubleSided ? false : true);
+				break;
+			case embree::DAELoader::FORCE_SINGLE_SIDED:
+				cullBackFaces = true;
+				break;
+			case embree::DAELoader::FORCE_DOUBLE_SIDED:
+				cullBackFaces = false;
+				break;
+			}
 
 			Handle<Device::RTShape> mesh = g_device->rtNewShape("trianglemesh");
 			if (numPositions) g_device->rtSetArray(mesh, "positions", "float3", dataPositions, numPositions, sizeof(Vec3f), 0);
@@ -618,8 +674,8 @@ namespace embree {
 		}
 	}
 
-	std::vector<Handle<Device::RTPrimitive>> loadDAE(const FileName &fileName, std::vector<Handle<Device::RTCamera>> &cameras) {
-		DAELoader loader(fileName);
+	std::vector<Handle<Device::RTPrimitive>> loadDAE(const FileName &fileName, std::vector<Handle<Device::RTCamera>> &cameras, std::string faceCullingMode) {
+		DAELoader loader(fileName, faceCullingMode);
 		cameras = loader.cameras;
 		return loader.primitives;
 	}

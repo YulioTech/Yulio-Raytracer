@@ -25,6 +25,7 @@ namespace embree
 			ds = parms.getVec2f("ds", Vec2f(1.0f, 1.0f));
 			eta = parms.getFloat("eta", 1.4f);
 			roughness = parms.getFloat("roughness", .9f);
+			reflectivity = parms.getFloat("reflectivity", .0f);
 			rcpRoughness = rcp(roughness);
 
 			//{
@@ -37,7 +38,16 @@ namespace embree
 		~Uber() {}
 
 		void shade(const Ray& ray, const Medium& currentMedium, const DifferentialGeometry& dg, CompositedBRDF& brdfs) const {
-			//Color4 diffuseColor(1.f, 0.f, 0.f, .5f);
+			////Color4 diffuseColor(1.f, 0.f, 0.f, 1.f);
+			//Vector3f n = normalize(dg.Ns);
+			//n = n + Vector3f(1.f);
+			//n = n * Vector3f(.5f);
+			//Color4 diffuseColor = Color4(n.x, n.y, n.z, 1.f);
+			////if (n.x < 0 || n.y < 0 || n.z < 0) {
+			////if (dot(dg.Ng, -ray.dir) < 0.f) {
+			//if (length(ray.Ng) < 0.1f) {
+			//	diffuseColor = Color4(1.f, 0.f, 1.f, 1.f);
+			//}
 			Color4 diffuseColor(diffuse.r, diffuse.g, diffuse.b, 1.f);
 			float alpha = 1.f, opacity = 0.f;
 			if (Kd) {
@@ -46,7 +56,7 @@ namespace embree
 				opacity = 1.f - alpha;
 			}
 
-			// Lev: use the vanilla lambertian BRDF to make sure the weights (that are based on BRDF sampling PDFs) are properly calculated.
+			// Lev: use the vanilla Lambertian BRDF to make sure the weights (that are based on BRDF sampling PDFs) are properly calculated.
 			brdfs.add(NEW_BRDF(Lambertian)(diffuseColor * alpha));
 			/*! the dielectric layer that models the covered diffuse part */
 			//brdfs.add(NEW_BRDF(DielectricLayer<Lambertian>)(one, 1.0f, eta, Lambertian(diffuseColor * alpha)));
@@ -56,13 +66,17 @@ namespace embree
 				brdfs.add(NEW_BRDF(ConstDielectricTransmission)(opacity));
 			}
 
+			/*! use dielectric modulated reflection in case of an explicitly specified reflectivity */
+			if (reflectivity > 0.f) {
+				brdfs.add(NEW_BRDF(DielectricReflection)(1.f, eta, alpha * reflectivity));
+			}
 			/*! use dielectric reflection in case of a specular surface */
-			if (roughness == 0.0f) {
+			else if (roughness == 0.f) {
 				brdfs.add(NEW_BRDF(DielectricReflection)(1.f, eta, alpha));
 			}
 			// Lev: microfacets don't play nice with the gradient-based PT, so we disable it for now.
-#if 0
-			/*! otherwise use the microfacet BRDF to model the rough surface */
+#if 1
+			/*! use the microfacet BRDF to model the rough surface */
 			else {
 				brdfs.add(NEW_BRDF(MicrofacetUber)(Color(alpha), FresnelDielectric(1.f, eta), PowerCosineDistribution(rcpRoughness, dg.Ns)));
 			}
@@ -76,6 +90,7 @@ namespace embree
 		Color diffuse;  //! Diffuse reflectance of the surface. The range is from 0 (black) to 1 (white).
 		float eta;          //!< Refraction index of the dielectric layer.
 		float roughness;    //!< Roughness parameter. The range goes from 0 (specular) to 1 (diffuse).
+		float reflectivity;    //!< Reflectivity (i.e. how much of a "mirror" effect is added).
 		float rcpRoughness; //!< Reciprocal roughness parameter.
 	};
 }

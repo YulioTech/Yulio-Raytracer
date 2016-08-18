@@ -269,12 +269,14 @@ namespace embree
 			dg.Ty = normalize(dPdt - dot(dPdt, dg.Ns)*dg.Ns);
 		}
 
-#if 0
-		dg.shadingFrame = Frame(dg.Tx, dg.Ty, dg.Ns);
-#else
-		Frame::computeShadingFrame(dg.Ns, dPdu, dg.shadingFrame);
-#endif
-		dg.wi = dg.shadingFrame.toLocal(-ray.dir);
+//#if 0
+//		dg.shadingFrame = Frame(dg.Tx, dg.Ty, dg.Ns);
+//#else
+//		Frame::computeShadingFrame(dg.Ns, dPdu, dg.shadingFrame);
+//#endif
+//		dg.wi = dg.shadingFrame.toLocal(-ray.dir);
+		
+		dg.wi = -ray.dir;
 
 		dg.error = max(abs(ray.tfar), reduce_max(abs(dg.P)));
 	}

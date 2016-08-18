@@ -12,14 +12,17 @@ using namespace Yulio;
 int main()
 {
 	ParamsRT params;
-	//params.renderer = "pathtracer";
-	params.size = 128;
-	params.spp = 1;
+	params.renderer = "pt";
+	params.size = 1536;
+	params.spp = 64;
 	params.jpegQuality = 90;
-	params.debug = false;
+	params.debug = true;
 	params.threadsPriority = -1;
-	//char *colladaFile = "../../models/Kia.dae";
-	char *colladaFile = "../../models/treeAlone_tempo_to_execute.dae";
+	params.waterMark = true;
+	params.faceCullingMode = "default"; // "forcesingle"
+	//const char *colladaFile = "../../models/flat_tempo_to_execute.dae";
+	const char *colladaFile = "../../models/Kia.dae";
+	//const char *colladaFile = "../../models/treeAlone_tempo_to_execute.dae";
 
 	const auto nInterations = 10;
 	for (auto i = 0; i < nInterations; ++i) {

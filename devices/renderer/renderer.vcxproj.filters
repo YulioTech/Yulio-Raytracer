@@ -24,16 +24,7 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Resources\WatermarkDarkTransp.png">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="Resources\WatermarkGrey.png">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="Resources\WatermarkWhite.png">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="Resources\WatermarkWhiteTransp.png">
+    <Image Include="Resources\watermarkwhitetrasp_100x100.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

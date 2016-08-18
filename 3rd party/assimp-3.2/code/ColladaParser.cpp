@@ -1201,7 +1201,6 @@ void ColladaParser::ReadEffectProfileCommon( Collada::Effect& pEffect)
             {
                 // just syntactic sugar
             }
-
             else if (mFormat == FV_1_4_n && IsElement( "image"))
             {
                 // read ID. Another entry which is "optional" by design but obligatory in reality
@@ -1614,6 +1613,9 @@ bool ColladaParser::ReadGeometry(Collada::Mesh* pMesh)
 					res = false;
 				}
             }
+			else if (IsElement("extra")) {
+				ReadMeshExtra(pMesh);
+			}
 			else {
                 // ignore the rest
                 SkipElement();
@@ -1660,7 +1662,8 @@ bool ColladaParser::ReadMesh(Mesh* pMesh)
             {
                 // read per-index mesh data and faces setup
                 ReadIndexData( pMesh);
-            } else
+            }
+			else
             {
                 // ignore the rest
                 SkipElement();
@@ -1683,6 +1686,73 @@ bool ColladaParser::ReadMesh(Mesh* pMesh)
             }
         }
     }
+
+	return true;
+}
+
+bool ColladaParser::ReadMeshExtra(Mesh* pMesh)
+{
+	if (mReader->isEmptyElement())
+		return true;
+
+	while (mReader->read())
+	{
+		if (mReader->getNodeType() == irr::io::EXN_ELEMENT)
+		{
+			if (IsElement("technique"))
+			{
+				const int profileID = GetAttribute("profile");
+				std::string profile(mReader->getAttributeValue(profileID));
+
+				if (profile == std::string("Rhino")) {
+					while (mReader->read())
+					{
+						if (mReader->getNodeType() == irr::io::EXN_ELEMENT) {
+							if (IsElement("double_sided")) {
+								pMesh->mDoubleSided = ReadBoolFromTextContent();
+							}
+							else {
+								SkipElement();
+							}
+						}
+						else if (mReader->getNodeType() == irr::io::EXN_ELEMENT_END) {
+							if (strcmp(mReader->getNodeName(), "double_sided") == 0)
+							{
+							}
+							else if (strcmp(mReader->getNodeName(), "technique") == 0)
+							{
+								break;
+							}
+							else
+							{
+								// everything else should be punished
+								ThrowException("Expected end of <technique> element.");
+							}
+
+						}
+					}
+				}
+			}
+			else
+			{
+				// ignore the rest
+				SkipElement();
+			}
+		}
+		else if (mReader->getNodeType() == irr::io::EXN_ELEMENT_END)
+		{
+			if (strcmp(mReader->getNodeName(), "extra") == 0)
+			{
+				// end of <extra> element - we're done here
+				break;
+			}
+			else
+			{
+				// everything else should be punished
+				ThrowException("Expected end of <extra> element.");
+			}
+		}
+	}
 
 	return true;
 }
@@ -1912,7 +1982,7 @@ void ColladaParser::ReadVertexData( Mesh* pMesh)
 {
     // extract the ID of the <vertices> element. Not that we care, but to catch strange referencing schemes we should warn about
     int attrID= GetAttribute( "id");
-    pMesh->mVertexID = mReader->getAttributeValue( attrID);
+    pMesh->mVertexID = mReader->getAttributeValue(attrID);
 
     // a number of <input> elements
     while (mReader->read())
@@ -1936,7 +2006,7 @@ void ColladaParser::ReadVertexData( Mesh* pMesh)
 
 // ------------------------------------------------------------------------------------------------
 // Reads input declarations of per-index mesh data into the given mesh
-void ColladaParser::ReadIndexData( Mesh* pMesh)
+void ColladaParser::ReadIndexData(Mesh* pMesh)
 {
     std::vector<size_t> vcount;
     std::vector<InputChannel> perIndexData;
@@ -2006,7 +2076,7 @@ void ColladaParser::ReadIndexData( Mesh* pMesh)
                     TestClosing( "vcount");
                 }
             }
-            else if (IsElement( "p"))
+            else if (IsElement("p"))
             {
                 if (!mReader->isEmptyElement())
                 {
@@ -2017,7 +2087,8 @@ void ColladaParser::ReadIndexData( Mesh* pMesh)
             else if (IsElement("extra"))
             {
                 SkipElement("extra");
-            } else
+            }
+			else
             {
                 ThrowException( boost::str( boost::format( "Unexpected sub element <%s> in tag <%s>") % mReader->getNodeName() % elementName));
             }

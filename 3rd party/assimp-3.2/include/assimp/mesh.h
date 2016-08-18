@@ -612,6 +612,7 @@ struct aiMesh
      *  mesh's vertex components (usually positions, normals). */
     C_STRUCT aiAnimMesh** mAnimMeshes;
 
+	bool mDoubleSided = false;
 
 #ifdef __cplusplus
 

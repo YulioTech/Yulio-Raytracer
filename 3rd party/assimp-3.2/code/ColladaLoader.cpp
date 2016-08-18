@@ -549,6 +549,9 @@ void ColladaLoader::BuildMeshesForNode(const ColladaParser& pParser, const Colla
 				// Lev: assign submesh info
 				dstMesh->mSubMeshIndex = sm;
 				dstMesh->mSubMeshSize = srcMesh->mSubMeshes.size();
+
+				// Lev: double-sided flag
+				dstMesh->mDoubleSided = srcMesh->mDoubleSided;
 			}
         }
     }

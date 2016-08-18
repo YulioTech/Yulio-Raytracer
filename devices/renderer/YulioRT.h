@@ -47,6 +47,7 @@ namespace Yulio {
 		bool debug = false;					// if present, enables debug the debug mode (i.e. keeping the intermediate image files, more detailed logging, etc.)
 		int threadsPriority = 0;			// worker threads priority as defined in Windows SetThreadPriorityfunction (i.e. 0 - is normal, -1 - below normal, etc.)
 		bool waterMark = false;				// if true, adds a watermark to the rendered images
+		char *faceCullingMode = "default";	// face culling mode : "default", "forcesingle" or "forcedouble"
 	};
 
 	DllApi bool StartRT(const char* colladaFile, const ParamsRT* params);

@@ -7,5 +7,5 @@
 
 namespace embree
 {
-	std::vector<Handle<Device::RTPrimitive>> loadDAE(const FileName &fileName, std::vector<Handle<Device::RTCamera>> &cameras);
+	std::vector<Handle<Device::RTPrimitive>> loadDAE(const FileName &fileName, std::vector<Handle<Device::RTCamera>> &cameras, std::string faceCullingMode);
 }
