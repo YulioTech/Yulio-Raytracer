@@ -1592,6 +1592,10 @@ namespace Yulio {
 		// Lev: need to assign the global culling mode here, since it'll be processed inside the workerThreadRT function before the parameters are parsed.
 		// This is a limitation of the current implementation and needs to be addressed in the future (for the sake of consistency).
 		g_faceCullingMode = currentParams.faceCullingMode;
+		// Lev: reset the optional parameters back to their default 'false' values. Otherwise there won't be a way to set them back to 'false', once they are set to 'true'.
+		g_waterMark = false;
+		g_toeIn = false;
+		g_debugging = false;
 
 		/*! create embree device */
 		if (!g_device) {
