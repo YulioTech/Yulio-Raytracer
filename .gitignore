@@ -1,0 +1,43 @@
+# Created by https://www.gitignore.io/api/macos
+
+### macOS ###
+*.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# End of https://www.gitignore.io/api/macos
+
+/3rd party/DevIL-SDK-x64-1.7.8.zip
+/3rd party/DevIL-SDK-x86-1.7.8.zip
+/3rd party/FreeImage3170Win32Win64.zip
+*.tlog
+*.idb
+ReleaseAVX2
+ReleaseAVX
+Release
+Debug
+Debug_DLL
+Release_DLL
+*.ipch

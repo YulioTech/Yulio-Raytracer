@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+
+<scene>
+  <Group>
+
+    <Sphere>
+      <position>0 100 -99.5</position>
+      <radius>100</radius>
+      <numTheta>50</numTheta>
+      <numPhi>50</numPhi>
+      <material>
+        <code>"ThinDielectric"</code>
+        <parameters>
+          <float name="etaInside">1.0</float>
+          <float name="eta">1.0</float>
+          <float3 name="transmission">1.0 1.0 0.0</float3>
+          <float3 name="transmissionOutside">1.0 1.0 0.0</float3>
+        </parameters>
+      </material>
+    </Sphere>
+	
+	<Sphere>
+      <position>0 100 -99.5</position>
+      <radius>200</radius>
+      <numTheta>50</numTheta>
+      <numPhi>50</numPhi>
+      <material>
+        <code>"ThinDielectric"</code>
+        <parameters>
+          <float name="etaInside">1.0</float>
+          <float name="eta">1.0</float>
+          <float3 name="transmission">0.0 1.0 0.0</float3>
+          <float3 name="transmissionOutside">0.0 1.0 0.0</float3>
+        </parameters>
+      </material>
+    </Sphere>
+	
+	<!--
+	<TriangleMesh>
+      <positions>-100 -100 300 100 -100 300 100 100 300 -100 100 300</positions>
+      <normals>-1 0 0 -1 0 0 -1 0 0 -1 0 0</normals>
+      <texcoords>0 0 1 0 1 1 0 1</texcoords>
+      <triangles>0 1 2 2 3 0</triangles>
+      <material>
+        <code>"Dielectric"</code>
+        <parameters>
+          <float name="etaInside">1.0</float>
+          <float3 name="transmission">0.0 1.0 0.0</float3>
+        </parameters>
+      </material>
+    </TriangleMesh>
+	-->
+	
+	<!--
+	<TriangleMesh>
+      <positions>-100 -100 310 100 -100 310 100 100 310 -100 100 310</positions>
+      <normals>-1 0 0 -1 0 0 -1 0 0 -1 0 0</normals>
+      <texcoords>0 0 1 0 1 1 0 1</texcoords>
+      <triangles>0 1 2 2 3 0</triangles>
+      <material>
+        <code>"Dielectric"</code>
+        <parameters>
+          <float name="etaInside">1.0</float>
+          <float3 name="transmission">1.0 0.0 0.0</float3>
+        </parameters>
+      </material>
+    </TriangleMesh>
+	-->
+	
+	<!--
+    <TriangleMesh>
+      <positions>-1000 0 -1000 1000 0 -1000 1000 0 1000 -1000 0 1000</positions>
+      <normals>0 1 0 0 1 0 0 1 0 0 1 0</normals>
+      <texcoords>0 0 1 0 1 1 0 1</texcoords>
+      <triangles>0 1 2 2 3 0</triangles>
+      <material>
+        <code>"MatteTextured"</code>
+        <parameters>
+          <texture name="Kd">"lines.ppm"</texture>
+          <float2 name="s0">0 0</float2>
+          <float2 name="ds">1 1</float2>
+        </parameters>
+      </material>
+    </TriangleMesh>
+	-->
+	
+	<!--
+    <HDRILight>
+      <AffineSpace>1 0 0 0 0 1 0 0 0 0 1 0</AffineSpace>
+	  <L>2.0 1.5 1.2</L>
+     <image>"lines.ppm"</image>
+    </HDRILight>
+	-->
+
+  </Group>
+</scene>

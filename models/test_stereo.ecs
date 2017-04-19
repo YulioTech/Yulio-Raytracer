@@ -1,0 +1,15 @@
+#-i test_stereo.xml
+#-i test_transmissive.xml
+-i 22_Frederick_Color_Problem.dae
+#-i dabrovic-sponza/sponza.obj
+#-i Sponza.dae
+#-i 22_Frederick_St_good_tempo_to_execute.dae
+#-i pp_9501_2016_05_17_17_08_25_M.dae
+#-i Chair.dae
+#-i Kia.dae
+#-i treeAlone_tempo_to_execute.dae
+#-i Whitecap_New.dae
+#-i Small_Set-With_Path.dae
+#-i Small_Set-With_Path.dae
+-c test_stereo_view.ecs
+

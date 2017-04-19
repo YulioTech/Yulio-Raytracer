@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+
+<scene>
+  <Group>
+
+    <Sphere>
+      <position>0 100 300</position>
+      <radius>10</radius>
+      <numTheta>50</numTheta>
+      <numPhi>50</numPhi>
+      <material>
+        <code>"MetallicPaint"</code>
+        <parameters>
+          <float name="eta">1.45</float>
+          <float3 name="shadeColor">1.0 0.0 0.0</float3>
+        </parameters>
+      </material>
+    </Sphere>
+
+    <Sphere>
+      <position>0 800 10000</position>
+      <radius>100</radius>
+      <numTheta>50</numTheta>
+      <numPhi>50</numPhi>
+      <material>
+        <code>"MetallicPaint"</code>
+        <parameters>
+          <float name="eta">1.45</float>
+          <float3 name="shadeColor">0.0 1.0 0.0</float3>
+        </parameters>
+      </material>
+    </Sphere>
+	
+    <Sphere>
+      <position>0 0 150</position>
+      <radius>10</radius>
+      <numTheta>50</numTheta>
+      <numPhi>50</numPhi>
+      <material>
+        <code>"MetallicPaint"</code>
+        <parameters>
+          <float name="eta">1.45</float>
+          <float3 name="shadeColor">0.0 0.0 1.0</float3>
+        </parameters>
+      </material>
+    </Sphere>
+	
+    <TriangleMesh>
+      <positions>-100 -0 100 100 -0 100 100 100 100 -100 100 100</positions>
+      <normals>0 0 1 0 0 1 0 0 1 0 0 1</normals>
+      <texcoords>0 0 1 0 1 1 0 1</texcoords>
+      <triangles>0 1 2 2 3 0</triangles>
+      <faceCamera>1</faceCamera>
+      <material>
+        <!--<code>"MatteTextured"</code>-->
+        <code>"Uber"</code>
+        <parameters>
+          <texture name="Kd">"logo.png"</texture>
+          <float2 name="s0">0 0</float2>
+          <float2 name="ds">1 1</float2>
+        </parameters>
+      </material>
+    </TriangleMesh>
+	
+	<!--
+	<TriangleMesh>
+      <positions>-100 -0 200 100 -0 200 100 100 200 -100 100 200</positions>
+      <normals>0 0 1 0 0 1 0 0 1 0 0 1</normals>
+      <texcoords>0 0 1 0 1 1 0 1</texcoords>
+      <triangles>0 1 2 2 3 0</triangles>
+      <faceCamera>0</faceCamera>
+      <material>
+        <code>"Uber"</code>
+        <parameters>
+          <texture name="Kd">"logo.png"</texture>
+          <float2 name="s0">0 0</float2>
+          <float2 name="ds">1 1</float2>
+        </parameters>
+      </material>
+    </TriangleMesh>
+	-->
+	
+    <TriangleMesh>
+      <positions>-1000 0 -1000 1000 0 -1000 1000 0 1000 -1000 0 1000</positions>
+      <normals>0 1 0 0 1 0 0 1 0 0 1 0</normals>
+      <texcoords>0 0 1 0 1 1 0 1</texcoords>
+      <triangles>0 1 2 2 3 0</triangles>
+      <material>
+        <code>"MatteTextured"</code>
+        <parameters>
+          <texture name="Kd">"lines.ppm"</texture>
+          <float2 name="s0">0 0</float2>
+          <float2 name="ds">1 1</float2>
+        </parameters>
+      </material>
+    </TriangleMesh>
+
+    <HDRILight>
+      <AffineSpace>1 0 0 0 0 1 0 0 0 0 1 0</AffineSpace>
+	  <!--<L>2.0 1.5 1.2</L>-->
+	  <L>0.0 0.0 0.0</L>
+     <image>"lines.ppm"</image>
+    </HDRILight>
+
+  </Group>
+</scene>

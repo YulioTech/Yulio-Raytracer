@@ -1,0 +1,11 @@
+-vp -200 100 200
+-vi 0 100 200
+-vu 0 1 0
+-fov 90
+#-o output.png
+#-o output1.jpg
+#-size 1536 1536 
+-depth 8
+#-spp 16
+-ambientlight 1 0 0
+-stereo

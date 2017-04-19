@@ -1,0 +1,48 @@
+// ======================================================================== //
+// Copyright 2009-2013 Intel Corporation                                    //
+//                                                                          //
+// Licensed under the Apache License, Version 2.0 (the "License");          //
+// you may not use this file except in compliance with the License.         //
+// You may obtain a copy of the License at                                  //
+//                                                                          //
+//     http://www.apache.org/licenses/LICENSE-2.0                           //
+//                                                                          //
+// Unless required by applicable law or agreed to in writing, software      //
+// distributed under the License is distributed on an "AS IS" BASIS,        //
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
+// See the License for the specific language governing permissions and      //
+// limitations under the License.                                           //
+// ======================================================================== //
+
+#pragma once
+
+#include "default.isph"
+#include "differentialgeometry.isph"
+
+struct Shape;
+
+/*! Performs interpolation of shading vertex parameters. */
+typedef void (*PostIntersectFunc)(uniform const Shape *uniform this,
+                                  const varying Ray &ray, 
+                                  varying DifferentialGeometry &dg);
+
+typedef void* uniform (*ShapeTransformFunc)(const uniform Shape* uniform this, const uniform AffineSpace3f& xfm);
+
+typedef uniform int (*AddFunc)(RTCScene scene, const uniform Shape* uniform this);
+
+struct Shape 
+{
+  RefCount base;
+  PostIntersectFunc postIntersect;
+  ShapeTransformFunc transform;
+  AddFunc add;
+};
+
+void Shape__Destructor(uniform RefCount* uniform this);
+
+void Shape__Constructor(uniform Shape* uniform this,
+                        uniform DestructorFunc destructor,
+                        uniform PostIntersectFunc postIntersect,
+                        uniform ShapeTransformFunc transform,
+                        uniform AddFunc add_);
+                        
