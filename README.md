@@ -32,7 +32,7 @@ By default, the project is meant to be complied as a DLL (use Release_DLL or Deb
 
 A sample scene has been included, with the Collada export and textures, so you can test the renderer. The scene is provided by [Mayhew](http://www.mayhew.ca), and they retain all copyright on the image and textures.
 
-![screenshot](Sample Scene/screenshot.jpg)
+![screenshot](sample_scene/screenshot.jpg)
 
 ### Running the renderer
 Since the renderer was converted to a DLL, we
